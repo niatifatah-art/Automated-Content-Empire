@@ -1,19 +1,14 @@
-import argparse
+from ace.cli import create_parser
+from ace.doctor import run
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        prog="ace",
-        description="Automated Content Empire"
-    )
-
-    parser.add_argument(
-        "--version",
-        action="version",
-        version="ACE 0.1.0"
-    )
-
+    parser = create_parser()
     args = parser.parse_args()
+
+    if args.command == "doctor":
+        run()
+        return
 
     print("Welcome to Automated Content Empire (ACE)")
 
