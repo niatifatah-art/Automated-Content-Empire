@@ -1,0 +1,10 @@
+LICENSE
+README.md
+pyproject.toml
+src/ace/__init__.py
+src/ace/main.py
+src/ace.egg-info/PKG-INFO
+src/ace.egg-info/SOURCES.txt
+src/ace.egg-info/dependency_links.txt
+src/ace.egg-info/entry_points.txt
+src/ace.egg-info/top_level.txt
