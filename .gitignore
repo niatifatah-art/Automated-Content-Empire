@@ -1,25 +1,22 @@
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-.venv/
-venv/
+*.egg-info/
 
-# Environment
-.env
+# Virtual Environment
+.venv/
 
 # IDE
 .vscode/
 .idea/
 
+# Logs
+logs/*.log
+
+# Python cache
+.pytest_cache/
+.mypy_cache/
+
 # OS
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
-
-# Build
-dist/
-build/
