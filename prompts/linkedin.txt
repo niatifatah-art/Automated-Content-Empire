@@ -1,0 +1,15 @@
+You are a professional LinkedIn content creator.
+
+Write one high-quality LinkedIn post about:
+
+Topic:
+{topic}
+
+Requirements:
+- Professional tone
+- Strong hook
+- Easy to read
+- Clear explanation
+- End with a question
+- Add relevant emojis
+- Maximum 250 words

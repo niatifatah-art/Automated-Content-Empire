@@ -1,16 +1,12 @@
 from ace.cli import create_parser
-from ace.doctor import run
+from ace.commands import execute
 
 
 def main():
     parser = create_parser()
     args = parser.parse_args()
 
-    if args.command == "doctor":
-        run()
-        return
-
-    print("Welcome to Automated Content Empire (ACE)")
+    execute(args)
 
 
 if __name__ == "__main__":
