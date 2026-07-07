@@ -1,22 +1,58 @@
 # Automated Content Empire (ACE)
 
-A personal automation platform for AI-powered content creation, developer workflows, and productivity.
+> Build once. Create forever.
 
-## Vision
+ACE is an open-source automation platform for building complete AI-powered content pipelines.
 
-Build one system that automates repetitive work while improving learning, content creation, and software development.
+Instead of using isolated scripts, ACE combines reusable engines to automate every stage of content creation.
 
-## Planned Features
+---
 
-- CLI Tools
-- AI Integration (Ollama)
-- Content Management
-- GitHub Automation
-- LinkedIn Automation
-- YouTube Workflow
-- n8n Workflows
-- Local Knowledge Base
+# Current Features
 
-## Project Status
+- AI Engine
+- Prompt Engine
+- Content Engine
+- Storage Engine
+- Configuration Engine
+- CLI
 
-🚧 Early Development
+---
+
+# Documentation
+
+Start here:
+
+- docs/00-introduction.md
+- docs/01-philosophy.md
+- docs/02-architecture.md
+- docs/03-folder-structure.md
+- docs/04-development-roadmap.md
+
+---
+
+# Project Status
+
+Currently under active development.
+
+The architecture is intentionally designed before adding advanced features.
+
+---
+
+# Roadmap
+
+The long-term vision includes:
+
+- Image generation
+- Voice synthesis
+- Video rendering
+- Workflow automation
+- n8n integration
+- Publishing engines
+- Analytics
+
+---
+
+# License
+
+MIT License
