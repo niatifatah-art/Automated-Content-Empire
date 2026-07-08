@@ -1,47 +1,71 @@
-from pathlib import Path
-from datetime import datetime
 import json
-import re
+from pathlib import Path
 
 
 PROJECTS_DIR = Path("projects")
 
 
-def slugify(text):
-    text = text.lower()
-    text = re.sub(r"[^a-z0-9]+", "-", text)
-    return text.strip("-")
+def slugify(title):
+    return (
+        title.lower()
+        .strip()
+        .replace(" ", "-")
+    )
 
 
 def create(title):
     slug = slugify(title)
 
-    timestamp = datetime.now().strftime("%Y-%m-%d")
+    project = PROJECTS_DIR / slug
 
-    folder = PROJECTS_DIR / f"{timestamp}-{slug}"
+    project.mkdir(parents=True, exist_ok=True)
 
-    folder.mkdir(parents=True, exist_ok=True)
-
-    for name in (
+    for folder in (
+        "ideas",
+        "prompts",
+        "scripts",
+        "voice",
         "images",
-        "audio",
-        "video",
+        "videos",
         "exports",
+        "logs",
     ):
-        (folder / name).mkdir(exist_ok=True)
+        (project / folder).mkdir(exist_ok=True)
 
     metadata = {
         "title": title,
         "slug": slug,
-        "created": datetime.now().isoformat(),
-        "status": "draft",
+        "status": "created",
     }
 
-    with open(folder / "project.json", "w") as file:
+    with open(project / "project.json", "w") as file:
         json.dump(
             metadata,
             file,
             indent=4,
         )
 
-    return folder
+    print(f"Project created: {project}")
+
+
+def load(project_path):
+    project = Path(project_path)
+
+    metadata = project / "project.json"
+
+    if not metadata.exists():
+        raise FileNotFoundError("project.json not found.")
+
+    with open(metadata) as file:
+        return json.load(file)
+
+
+def status(project_path):
+    project = Path(project_path)
+
+    return {
+        "script": any((project / "scripts").glob("*")),
+        "voice": any((project / "voice").glob("*")),
+        "images": any((project / "images").glob("*")),
+        "video": any((project / "videos").glob("*")),
+    }

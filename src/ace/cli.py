@@ -17,25 +17,81 @@ def create_parser():
 
     sub = parser.add_subparsers(dest="command")
 
+    # ------------------------------------------------------------------
+    # project
+    # ------------------------------------------------------------------
+
+    project = sub.add_parser(
+        "project",
+        help="Manage projects",
+    )
+
+    project_sub = project.add_subparsers(
+        dest="project_command",
+    )
+
+    create = project_sub.add_parser(
+        "create",
+        help="Create a new project",
+    )
+
+    create.add_argument(
+        "title",
+        nargs="+",
+    )
+
+    # ------------------------------------------------------------------
+    # workflow
+    # ------------------------------------------------------------------
+
+    workflow = sub.add_parser(
+        "workflow",
+        help="Run project workflows",
+    )
+
+    workflow_sub = workflow.add_subparsers(
+        dest="workflow_command",
+    )
+
+    run = workflow_sub.add_parser(
+        "run",
+        help="Run a project workflow",
+    )
+
+    run.add_argument(
+        "project",
+    )
+
+    # ------------------------------------------------------------------
     # doctor
+    # ------------------------------------------------------------------
+
     sub.add_parser(
         "doctor",
         help="Check your development environment",
     )
 
+    # ------------------------------------------------------------------
     # config
+    # ------------------------------------------------------------------
+
     sub.add_parser(
         "config",
         help="Show ACE configuration",
     )
 
+    # ------------------------------------------------------------------
     # ai
+    # ------------------------------------------------------------------
+
     ai = sub.add_parser(
         "ai",
         help="AI tools",
     )
 
-    ai_sub = ai.add_subparsers(dest="ai_command")
+    ai_sub = ai.add_subparsers(
+        dest="ai_command",
+    )
 
     ai_sub.add_parser(
         "models",
@@ -52,7 +108,10 @@ def create_parser():
         nargs="+",
     )
 
+    # ------------------------------------------------------------------
     # content
+    # ------------------------------------------------------------------
+
     content = sub.add_parser(
         "content",
         help="Generate content",

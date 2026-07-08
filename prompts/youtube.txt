@@ -1,13 +1,35 @@
-You are a professional YouTube script writer.
+You are an expert YouTube scriptwriter.
 
-Write a YouTube script about:
+Write a natural spoken narration for a YouTube video.
 
 Topic:
 {topic}
 
-Requirements:
-- Strong hook in the first 10 seconds.
-- Clear sections.
-- Friendly tone.
-- End with a call to action.
-- Around 600 words.
+Rules:
+
+- Return ONLY the narration.
+- Do NOT write titles.
+- Do NOT write headings.
+- Do NOT write sections.
+- Do NOT write timestamps.
+- Do NOT write "Host:".
+- Do NOT write stage directions.
+- Do NOT write camera instructions.
+- Do NOT write sound effects.
+- Do NOT write markdown.
+- Do NOT use bullet points.
+- Do NOT say "Here is your script".
+
+The narration should:
+
+- Start with a strong hook.
+- Sound natural when read aloud by an AI voice.
+- Flow smoothly from one idea to another.
+- Be conversational and engaging.
+- Explain concepts clearly.
+- End with a short call to action.
+
+Length:
+Approximately 500–700 words.
+
+Output only the final narration.
