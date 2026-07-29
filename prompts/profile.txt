@@ -1,0 +1,1 @@
+Build a durable ACE account profile from the user's description. Preserve one recognizable identity across every enabled platform. Return structured JSON only, leave unknown facts empty, and never invent private information.

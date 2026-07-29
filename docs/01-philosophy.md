@@ -1,185 +1,56 @@
 # ACE Design Philosophy
 
-Software becomes difficult to maintain when responsibilities are mixed.
+ACE keeps the original rule:
 
-ACE follows one simple rule:
+> Build engines, not isolated features.
 
-> Every component should have one responsibility.
+## One responsibility per engine
 
----
+- Configuration resolves settings.
+- Profiles define account identity.
+- Catalogs define platforms, content types, and named models.
+- Prompts define the work requested from a model.
+- Provider adapters implement external protocols.
+- AI routing chooses primary and fallback models.
+- Memory manages local model lifetime.
+- Content coordinates candidates, selection, review, and extras.
+- Storage creates reproducible workspaces.
+- Assets manage media owned by the account.
+- Resources discover media and record licenses.
+- Voice generates narration.
+- Editing creates timelines and subtitles.
+- Rendering turns the package into baseline media.
 
-# Build Engines, Not Features
+## Models are configuration, not code
 
-Many projects start by adding features.
+A content function never hard-codes Gemini, Ollama, or Claude. It asks for a task such as `script`, `selection`, or `review`; the configured route decides which model to use.
 
-For example:
-
-- Generate LinkedIn posts
-- Generate YouTube scripts
-- Generate thumbnails
-
-This approach works initially but becomes increasingly difficult to maintain.
-
-ACE takes a different approach.
-
-Instead of building features, ACE builds reusable engines.
-
-For example:
-
-```
-AI Engine
-Prompt Engine
-Storage Engine
-Media Engine
-Workflow Engine
-```
-
-Features are simply combinations of these engines.
-
----
-
-# Separation of Responsibilities
-
-Every engine owns one problem.
-
-For example:
-
-```
-AI Engine
+```text
+script
+  ↓
+gemini/gemini-3.6-flash
+  ↓ fallback
+ollama/qwen3:8b
 ```
 
-Responsible for communicating with language models.
+The same route can be replaced with an alias or any exact provider model ID.
 
-It should never know where prompts are stored.
+## Local first, quality aware
 
-It should never know how files are saved.
+Local-first is a preference, not a refusal to use cloud capabilities. ACE can be run free/local, cloud-assisted, or mixed. Missing optional services should downgrade the route or skip an optional stage without destroying completed work.
 
----
+## Identity is global; platform behavior is local
 
-```
-Prompt Engine
-```
+A profile owns personality and brand voice. Platform rules own only delivery adaptation. This avoids producing six unrelated personalities for six social platforms.
 
-Responsible for loading prompt templates.
+## Security is structural
 
-It should never communicate with AI.
+API keys are never part of source-controlled model configuration. Secrets are loaded from a protected file outside the repository or from process environment variables. Status commands mask values.
 
----
+## Reproducibility over hidden magic
 
-```
-Storage Engine
-```
+Every generation stores its profile snapshot, prompt, model/provider metadata, candidate set, evaluation, selected version, licenses, and edit plan. Automatic decisions remain inspectable.
 
-Responsible for saving and loading files.
+## Honest degradation
 
-It should never generate content.
-
----
-
-This separation keeps the system modular and easy to maintain.
-
----
-
-# Replace Components, Not Systems
-
-Every engine should be replaceable.
-
-For example:
-
-```
-Today
-
-AI Engine
-    ↓
-Ollama
-```
-
-Later:
-
-```
-AI Engine
-    ↓
-OpenAI
-```
-
-or
-
-```
-AI Engine
-    ↓
-Gemini
-```
-
-The rest of the project should continue working without modification.
-
----
-
-# Local First
-
-ACE prefers local tools whenever possible.
-
-Examples include:
-
-- Ollama
-- FFmpeg
-- Whisper
-- ComfyUI
-
-Cloud services remain optional.
-
-This allows users to own their workflow and reduce dependency on external services.
-
----
-
-# Simplicity Before Complexity
-
-The first implementation should always be simple.
-
-Optimization comes later.
-
-Readable code is preferred over clever code.
-
----
-
-# Documentation Is Part of Development
-
-Documentation is written during development, not after development.
-
-Every major architectural decision should be documented.
-
-Future contributors should understand not only *how* the system works but also *why* it was designed this way.
-
----
-
-# Learning Through Building
-
-ACE is intended to be more than an automation platform.
-
-It is also a learning resource.
-
-A beginner should be able to understand the project.
-
-An experienced developer should be able to understand the architecture.
-
-The code should teach.
-
-The documentation should teach.
-
-The architecture should teach.
-
----
-
-# Long-Term Vision
-
-ACE is designed as a platform rather than a single application.
-
-Future engines may include:
-
-- Image Engine
-- Voice Engine
-- Video Engine
-- Workflow Engine
-- Publishing Engine
-- Analytics Engine
-
-The architecture should support future expansion without requiring a complete redesign.
+ACE should say what it skipped and why. It should never claim that a thumbnail image, premium voice, authoritative research, or final render exists when only a brief or fallback was produced.

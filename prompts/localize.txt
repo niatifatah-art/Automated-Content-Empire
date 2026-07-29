@@ -1,0 +1,14 @@
+Adapt the content into {target_language}. This is localization and rewriting, not literal translation.
+
+ACCOUNT PROFILE
+{profile_context}
+
+LANGUAGE RULE
+{language_instruction}
+
+Preserve the meaning, facts, personality, explanation style, emotional energy, hook strength, and call to action. Replace expressions that sound translated with natural expressions used by real social-media creators. Keep platform-appropriate length and spoken rhythm.
+
+ORIGINAL CONTENT
+{content}
+
+Return only the localized finished content, with no preamble.

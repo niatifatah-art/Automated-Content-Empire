@@ -1,117 +1,27 @@
-# Development Roadmap
+# Development roadmap
 
-ACE is developed in independent phases.
+## Implemented in v1.7
 
-Each phase should produce a working improvement.
+- Persistent YAML account identities with AI-assisted compilation, history, rollback, and task-specific missing-context checks.
+- Six platforms and 41 editable content types.
+- Manual, assisted, and Autopilot creation modes.
+- Local/cloud text routes, dynamic model discovery, aliases, free-only mode, and Smart Memory.
+- Candidate generation, scoring, review, extras, quality retries, and repetition warnings.
+- Research references, factual-risk reports, and TTS-safe script preparation.
+- Pocket TTS, Kokoro, Piper, and OpenAI TTS adapters.
+- Account-owned assets, reusable-stock discovery, strict license manifests, and reference separation.
+- Editing packages, branded fallback visuals, burned subtitles, FFmpeg rendering, black-frame detection, and silence detection.
+- Guided help, readiness, status, repair, self-test, and release verification.
 
----
+## Next integrations
 
-# Phase 1
+1. More primary-source research connectors and full-page evidence extraction.
+2. Optional cloud and local image-generation adapters suited to the user's hardware.
+3. Semantic video-scene analysis and automatic clip trimming.
+4. Advanced editing templates, transitions, music ducking, and account-specific motion systems.
+5. FCPXML, OTIO, DaVinci Resolve, and Premiere exports.
+6. Explicitly approved direct publishing and analytics connectors.
+7. Cost/token budgets with provider-specific price discovery.
+8. Plugin SDK for community providers and production engines.
 
-## Foundation
-
-- [x] Python package
-- [x] CLI
-- [x] Configuration
-- [x] Doctor command
-
----
-
-# Phase 2
-
-## AI
-
-- [x] AI Engine
-- [x] Ollama integration
-- [x] Model discovery
-- [x] Prompt execution
-
----
-
-# Phase 3
-
-## Prompt System
-
-- [x] External prompt templates
-- [x] Dynamic prompt loading
-
----
-
-# Phase 4
-
-## Content
-
-- [x] LinkedIn generator
-- [x] YouTube generator
-- [x] Markdown storage
-
----
-
-# Phase 5
-
-## Documentation
-
-- [x] Introduction
-- [x] Philosophy
-- [x] Architecture
-- [x] Folder Structure
-- [x] Development Roadmap
-
----
-
-# Phase 6
-
-## Project Management
-
-- [ ] Project Engine
-- [ ] Metadata
-- [ ] Asset management
-
----
-
-# Phase 7
-
-## Media
-
-- [ ] Image Engine
-- [ ] Voice Engine
-- [ ] Video Engine
-
----
-
-# Phase 8
-
-## Workflow
-
-- [ ] Workflow Engine
-- [ ] n8n integration
-- [ ] Scheduling
-
----
-
-# Phase 9
-
-## Publishing
-
-- [ ] LinkedIn
-- [ ] YouTube
-- [ ] X
-- [ ] Reddit
-
----
-
-# Phase 10
-
-## Analytics
-
-- [ ] Statistics
-- [ ] Reports
-- [ ] Performance analysis
-
----
-
-# Guiding Principle
-
-ACE grows by adding engines, not by adding unrelated features.
-
-Every new capability should strengthen the architecture rather than increase complexity.
+ACE will keep these integrations replaceable rather than putting every provider directly inside the content engine.
