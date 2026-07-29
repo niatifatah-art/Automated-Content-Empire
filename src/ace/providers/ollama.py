@@ -1,43 +1,43 @@
-import subprocess
+from __future__ import annotations
+
+from ace.errors import ProviderRequestError
+from ace.providers.base import AIProvider, GenerationRequest, ProviderResponse
+from ace.providers.http import request_json
 
 
-def generate(model, prompt):
-    result = subprocess.run(
-        [
-            "ollama",
-            "run",
-            model,
-            prompt,
-        ],
-        capture_output=True,
-        text=True,
-    )
+class OllamaProvider(AIProvider):
+    def _url(self, path: str) -> str:
+        return f"{self.config.get('base_url', 'http://127.0.0.1:11434').rstrip('/')}{path}"
 
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr)
+    @property
+    def timeout(self) -> float:
+        return float(self.config.get("timeout_seconds", 300))
 
-    return result.stdout.strip()
+    def generate(self, request: GenerationRequest) -> ProviderResponse:
+        payload = {
+            "model": request.model,
+            "prompt": request.prompt,
+            "stream": False,
+            "options": {
+                "temperature": request.temperature,
+                "num_predict": request.max_output_tokens,
+            },
+        }
+        if request.keep_alive is not None:
+            payload["keep_alive"] = request.keep_alive
+        raw = request_json("POST", self._url("/api/generate"), payload=payload, timeout=self.timeout)
+        text = raw.get("response")
+        if not isinstance(text, str) or not text.strip():
+            error = raw.get("error")
+            raise ProviderRequestError(str(error or "Ollama returned no text."))
+        return ProviderResponse(text=text.strip(), raw=raw)
 
-
-def list_models():
-    result = subprocess.run(
-        [
-            "ollama",
-            "list",
-        ],
-        capture_output=True,
-        text=True,
-    )
-
-    if result.returncode != 0:
-        return []
-
-    lines = result.stdout.splitlines()
-
-    if len(lines) <= 1:
-        return []
-
-    return [
-        line.split()[0]
-        for line in lines[1:]
-    ]
+    def list_models(self) -> list[str]:
+        raw = request_json("GET", self._url("/api/tags"), timeout=self.timeout)
+        result: list[str] = []
+        for model in raw.get("models", []):
+            if isinstance(model, dict):
+                name = model.get("name") or model.get("model")
+                if isinstance(name, str):
+                    result.append(name)
+        return sorted(set(result))

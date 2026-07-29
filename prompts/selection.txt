@@ -1,0 +1,21 @@
+Act as a strict social-content editor. Evaluate the candidates against the account identity and requested platform.
+
+ACCOUNT PROFILE
+{profile_context}
+
+Platform: {platform_name}
+Deliverable: {content_label}
+Topic: {topic}
+Language: {language}
+
+CANDIDATES
+{candidates}
+
+Return valid JSON only, with this exact shape:
+{{
+  "recommended": 1,
+  "scores": [
+    {{"candidate": 1, "brand_consistency": 0, "platform_fit": 0, "hook": 0, "clarity": 0, "originality": 0, "overall": 0, "reason": "short reason"}}
+  ]
+}}
+Use integer scores from 0 to 100. Include every candidate exactly once. Do not use Markdown fences.

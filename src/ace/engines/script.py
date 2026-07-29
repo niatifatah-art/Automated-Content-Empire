@@ -1,32 +1,19 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 from ace.content import generate
 from ace.project import load
 
 
-def run(project_path):
-    print(">>> SCRIPT ENGINE <<<")
-
+def run(project_path: str | Path, workspace: str | Path | None = None):
+    metadata = load(project_path, workspace)
     project = Path(project_path)
-
-    metadata = load(project_path)
-
-    title = metadata["title"]
-
-    output = project / "scripts" / "script.md"
-
-    print(f"Output: {output}")
-
-    if output.exists():
-        print("Script already exists.")
-        return
-
-    print("Generating script...\n")
-
-    generate(
-        "youtube",
+    output = project / "content" / "main.md"
+    return generate(
+        metadata["platform"],
+        metadata["content_type"],
+        topic=metadata["topic"],
         output=output,
-        topic=title,
+        workspace=workspace,
     )
-
-    print("\nScript generated.")

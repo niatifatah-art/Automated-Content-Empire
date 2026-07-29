@@ -4,12 +4,47 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ace"
-version = "0.1.0"
-description = "Automated Content Empire"
+version = "1.7.0"
+description = "Automated Content Empire — a profile-aware local/cloud content production CLI"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 authors = [
     { name = "Fatah Niati", email = "niatifatah@gmail.com" }
+]
+license = { text = "MIT" }
+keywords = ["content", "automation", "ollama", "gemini", "social-media", "cli"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = []
+
+[project.optional-dependencies]
+yaml = ["PyYAML>=6.0"]
+voice = [
+    "kokoro>=0.9.4; python_version < '3.13'",
+    "numpy>=1.26",
+    "soundfile>=0.12",
+]
+pocket-tts = [
+    "pocket-tts",
+    "scipy>=1.11",
+]
+test = [
+    "pytest>=8",
+]
+all-voice = [
+    "kokoro>=0.9.4; python_version < '3.13'",
+    "numpy>=1.26",
+    "soundfile>=0.12",
+    "pocket-tts",
+    "scipy>=1.11",
 ]
 
 [project.scripts]
@@ -17,6 +52,10 @@ ace = "ace.main:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"ace.resources" = ["*.json", "prompts/*.txt"]

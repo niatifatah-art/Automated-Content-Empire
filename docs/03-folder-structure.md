@@ -1,115 +1,40 @@
-# Project Structure
+# Folder structure
 
-ACE follows the "src layout" project structure.
+## Application source
 
+```text
+src/ace/
+├── cli.py, commands.py, guide.py
+├── profile.py, account_context.py, account_memory.py
+├── ai.py, models.py, memory.py
+├── content.py, quality.py, fact_check.py, research.py
+├── speech.py, assets.py, resources_engine.py, editing.py
+├── generation_status.py, autopilot.py, selftest.py
+├── providers/
+├── engines/
+└── resources/
 ```
-Automated-Content-Empire/
 
-├── config/
-│   └── config.json
-│
-├── data/
-│   └── content/
-│
-├── docs/
-│
-├── logs/
-│
+## User configuration
+
+```text
+~/.config/ace/
+├── config.json
+├── content_catalog.json
+├── model_catalog.json
+├── secrets.env
 ├── prompts/
-│   ├── linkedin.txt
-│   └── youtube.txt
-│
-├── scripts/
-│
-├── src/
-│   └── ace/
-│       ├── ai.py
-│       ├── cli.py
-│       ├── commands.py
-│       ├── config.py
-│       ├── content.py
-│       ├── doctor.py
-│       ├── prompt.py
-│       ├── storage.py
-│       └── main.py
-│
-├── tests/
-│
-├── workflows/
-│
-├── pyproject.toml
-├── README.md
-└── LICENSE
+└── accounts/<slug>/account.yaml
 ```
 
----
+## User data
 
-# Directory Overview
+```text
+~/.local/share/ace/
+├── accounts/<slug>/assets/
+├── content/<slug>/<platform>/<type>/<run>/
+├── projects/
+└── models/
+```
 
-## src/
-
-Contains the application source code.
-
-No documentation or data should be stored here.
-
----
-
-## prompts/
-
-Stores prompt templates.
-
-Keeping prompts outside the Python code makes them easier to edit and maintain.
-
----
-
-## config/
-
-Stores configuration files.
-
-Configuration should never be hardcoded.
-
----
-
-## data/
-
-Stores generated content and temporary project data.
-
----
-
-## docs/
-
-Contains all project documentation.
-
-Documentation is considered part of the project.
-
----
-
-## tests/
-
-Contains automated tests.
-
----
-
-## logs/
-
-Stores runtime logs.
-
----
-
-## workflows/
-
-Future automation workflows (n8n and others).
-
----
-
-## scripts/
-
-Utility scripts used during development.
-
----
-
-# Why Use the src Layout?
-
-Separating source code from the project root prevents accidental imports and follows modern Python packaging practices.
-
-It also makes packaging and testing more reliable.
+Every content run stores candidates, selection data, account snapshots, research, quality reports, narration, reusable resources, license manifests, subtitles, edit plans, exports, and status metadata as applicable.

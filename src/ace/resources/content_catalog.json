@@ -1,0 +1,638 @@
+{
+  "schema_version": 1,
+  "platforms": {
+    "youtube": {
+      "name": "YouTube",
+      "aliases": [
+        "yt"
+      ],
+      "default_type": "long_video",
+      "default_pack": [
+        "long_video",
+        "short",
+        "title",
+        "description",
+        "thumbnail",
+        "community_post"
+      ],
+      "types": {
+        "long_video": {
+          "aliases": [
+            "long",
+            "video"
+          ],
+          "label": "Long-form video script",
+          "task": "script",
+          "voice_ready": true,
+          "goal": "Create a complete retention-focused long-form YouTube script.",
+          "format": "Hook, promise, structured sections, transitions, payoff, and call to action.",
+          "constraints": [
+            "Write spoken narration, not production commentary.",
+            "Use pattern interrupts and open loops without clickbait deception.",
+            "Make the structure easy to record and edit."
+          ]
+        },
+        "short": {
+          "aliases": [
+            "shorts",
+            "short_video"
+          ],
+          "label": "YouTube Short script",
+          "task": "script",
+          "voice_ready": true,
+          "goal": "Create a fast vertical-video script designed for retention.",
+          "format": "Immediate hook, compact value, payoff, and short CTA.",
+          "constraints": [
+            "Keep every sentence recordable.",
+            "Avoid introductions and filler.",
+            "Target roughly 20-60 seconds unless the user specifies otherwise."
+          ]
+        },
+        "title": {
+          "aliases": [
+            "titles"
+          ],
+          "label": "Video titles",
+          "task": "writing",
+          "goal": "Produce strong, accurate YouTube title options.",
+          "format": "A ranked list of title options with a short rationale for the top three.",
+          "constraints": [
+            "Prioritize clarity, curiosity, and truthful specificity.",
+            "Avoid misleading clickbait."
+          ]
+        },
+        "description": {
+          "aliases": [
+            "desc"
+          ],
+          "label": "Video description",
+          "task": "writing",
+          "goal": "Write a searchable YouTube description that supports the video.",
+          "format": "Opening summary, value points, CTA, chapters placeholders when appropriate, and hashtags.",
+          "constraints": [
+            "Use natural keywords.",
+            "Do not invent links or claims."
+          ]
+        },
+        "tags": {
+          "aliases": [
+            "keywords"
+          ],
+          "label": "Tags and keywords",
+          "task": "json",
+          "goal": "Create a focused YouTube keyword set.",
+          "format": "Primary keywords, secondary keywords, long-tail phrases, and tags.",
+          "constraints": [
+            "Prefer relevance over quantity."
+          ]
+        },
+        "thumbnail": {
+          "aliases": [
+            "thumb"
+          ],
+          "label": "Thumbnail brief and image prompt",
+          "task": "prompt",
+          "goal": "Design a high-clarity thumbnail concept and production prompt.",
+          "format": "Concept, focal subject, composition, text overlay options, visual contrast, image-generation prompt, and negative prompt.",
+          "constraints": [
+            "The thumbnail must communicate one idea at small size.",
+            "Use minimal text.",
+            "Do not generate the image itself."
+          ]
+        },
+        "community_post": {
+          "aliases": [
+            "community"
+          ],
+          "label": "Community post",
+          "task": "writing",
+          "goal": "Create a YouTube community post that starts conversation.",
+          "format": "Post copy plus an optional poll or question.",
+          "constraints": [
+            "Sound human and concise."
+          ]
+        }
+      }
+    },
+    "tiktok": {
+      "name": "TikTok",
+      "aliases": [
+        "tt"
+      ],
+      "default_type": "short",
+      "default_pack": [
+        "short",
+        "caption",
+        "hook",
+        "series",
+        "thumbnail"
+      ],
+      "types": {
+        "short": {
+          "aliases": [
+            "video",
+            "short_video"
+          ],
+          "label": "TikTok script",
+          "task": "script",
+          "voice_ready": true,
+          "goal": "Create a native TikTok vertical-video script.",
+          "format": "Scroll-stopping first line, concise beat-by-beat script, payoff, and CTA.",
+          "constraints": [
+            "Start with the result, tension, or surprise.",
+            "Use conversational language.",
+            "Avoid filler."
+          ]
+        },
+        "caption": {
+          "aliases": [
+            "post"
+          ],
+          "label": "TikTok caption",
+          "task": "writing",
+          "goal": "Write a caption that complements rather than repeats the video.",
+          "format": "Caption, CTA, and a small set of relevant hashtags.",
+          "constraints": [
+            "Keep it natural and platform-native."
+          ]
+        },
+        "hook": {
+          "aliases": [
+            "hooks"
+          ],
+          "label": "TikTok hooks",
+          "task": "idea",
+          "goal": "Generate varied first-second hooks for the topic.",
+          "format": "Ranked hook options grouped by angle.",
+          "constraints": [
+            "Each hook must be immediately understandable."
+          ]
+        },
+        "series": {
+          "aliases": [
+            "series_plan"
+          ],
+          "label": "TikTok series plan",
+          "task": "planning",
+          "goal": "Turn the topic into a repeatable TikTok series.",
+          "format": "Series promise, episode list, recurring format, and publishing sequence.",
+          "constraints": [
+            "Each episode must stand alone while encouraging the next view."
+          ]
+        },
+        "live_outline": {
+          "aliases": [
+            "live"
+          ],
+          "label": "TikTok LIVE outline",
+          "task": "planning",
+          "goal": "Plan a structured TikTok LIVE session.",
+          "format": "Opening, segments, interaction prompts, offers or CTA, and close.",
+          "constraints": [
+            "Include audience interaction throughout."
+          ]
+        },
+        "thumbnail": {
+          "aliases": [
+            "cover",
+            "thumb"
+          ],
+          "label": "TikTok cover brief",
+          "task": "prompt",
+          "goal": "Create a readable vertical cover concept.",
+          "format": "Cover text, frame choice, composition, and image prompt.",
+          "constraints": [
+            "Keep text readable in the profile grid.",
+            "Do not generate the image itself."
+          ]
+        }
+      }
+    },
+    "instagram": {
+      "name": "Instagram",
+      "aliases": [
+        "insta",
+        "ig"
+      ],
+      "default_type": "reel",
+      "default_pack": [
+        "reel",
+        "caption",
+        "carousel",
+        "story",
+        "thumbnail"
+      ],
+      "types": {
+        "reel": {
+          "aliases": [
+            "short",
+            "video"
+          ],
+          "label": "Instagram Reel script",
+          "task": "script",
+          "voice_ready": true,
+          "goal": "Create a retention-focused Instagram Reel.",
+          "format": "Hook, visual or spoken beats, payoff, CTA, and on-screen text suggestions.",
+          "constraints": [
+            "Keep the spoken copy natural.",
+            "Make the first frame understandable without sound."
+          ]
+        },
+        "carousel": {
+          "aliases": [
+            "slides"
+          ],
+          "label": "Instagram carousel",
+          "task": "writing",
+          "goal": "Create a swipeable educational or persuasive carousel.",
+          "format": "Cover slide, one idea per slide, summary, and CTA.",
+          "constraints": [
+            "Use concise slide copy.",
+            "Create a clear narrative across slides."
+          ]
+        },
+        "post": {
+          "aliases": [
+            "feed_post"
+          ],
+          "label": "Instagram feed post",
+          "task": "writing",
+          "goal": "Write a complete feed post around the topic.",
+          "format": "Opening line, body, CTA, and relevant hashtags.",
+          "constraints": [
+            "Use readable paragraph spacing."
+          ]
+        },
+        "story": {
+          "aliases": [
+            "stories"
+          ],
+          "label": "Instagram Story sequence",
+          "task": "planning",
+          "goal": "Build an interactive Story sequence.",
+          "format": "Frame-by-frame copy, suggested visual, and interaction sticker.",
+          "constraints": [
+            "Each frame should be quickly understandable."
+          ]
+        },
+        "caption": {
+          "aliases": [
+            "copy"
+          ],
+          "label": "Instagram caption",
+          "task": "writing",
+          "goal": "Write a caption with a strong opening and natural CTA.",
+          "format": "Hook, value or story, CTA, and hashtags.",
+          "constraints": [
+            "Avoid generic motivational filler."
+          ]
+        },
+        "bio": {
+          "aliases": [
+            "profile_bio"
+          ],
+          "label": "Instagram bio",
+          "task": "writing",
+          "goal": "Create concise profile bio options.",
+          "format": "Three differentiated bio options with name-field and CTA suggestions.",
+          "constraints": [
+            "Communicate who it is for, value, and next action."
+          ]
+        },
+        "thumbnail": {
+          "aliases": [
+            "cover",
+            "thumb"
+          ],
+          "label": "Reel cover brief",
+          "task": "prompt",
+          "goal": "Create a clear Reel cover concept.",
+          "format": "Cover text, composition, subject, style, image prompt, and negative prompt.",
+          "constraints": [
+            "Optimize for profile-grid readability.",
+            "Do not generate the image itself."
+          ]
+        }
+      }
+    },
+    "facebook": {
+      "name": "Facebook",
+      "aliases": [
+        "fb"
+      ],
+      "default_type": "post",
+      "default_pack": [
+        "post",
+        "reel",
+        "story",
+        "group_post",
+        "thumbnail"
+      ],
+      "types": {
+        "post": {
+          "aliases": [
+            "feed_post"
+          ],
+          "label": "Facebook post",
+          "task": "writing",
+          "goal": "Write a Facebook post that encourages reading and discussion.",
+          "format": "Opening, useful or emotional body, question or CTA.",
+          "constraints": [
+            "Use natural language and readable spacing."
+          ]
+        },
+        "long_post": {
+          "aliases": [
+            "long",
+            "article"
+          ],
+          "label": "Long Facebook post",
+          "task": "writing",
+          "goal": "Create a longer narrative or educational Facebook post.",
+          "format": "Strong opening, structured body, takeaway, and CTA.",
+          "constraints": [
+            "Maintain momentum across longer paragraphs."
+          ]
+        },
+        "reel": {
+          "aliases": [
+            "short",
+            "video"
+          ],
+          "label": "Facebook Reel script",
+          "task": "script",
+          "voice_ready": true,
+          "goal": "Create a short vertical-video script for Facebook Reels.",
+          "format": "Hook, concise script beats, payoff, and CTA.",
+          "constraints": [
+            "Make the value clear immediately."
+          ]
+        },
+        "story": {
+          "aliases": [
+            "stories"
+          ],
+          "label": "Facebook Story sequence",
+          "task": "planning",
+          "goal": "Create a short Story sequence.",
+          "format": "Frame-by-frame copy and visual direction.",
+          "constraints": [
+            "Keep each frame simple."
+          ]
+        },
+        "group_post": {
+          "aliases": [
+            "group"
+          ],
+          "label": "Facebook group post",
+          "task": "writing",
+          "goal": "Write a community-appropriate group post.",
+          "format": "Context, useful contribution or question, and discussion prompt.",
+          "constraints": [
+            "Avoid sounding promotional unless requested."
+          ]
+        },
+        "ad": {
+          "aliases": [
+            "advert",
+            "advertisement"
+          ],
+          "label": "Facebook ad copy",
+          "task": "writing",
+          "goal": "Draft ethical direct-response Facebook ad copy.",
+          "format": "Primary text options, headline options, description, and CTA suggestions.",
+          "constraints": [
+            "Do not invent proof, guarantees, or customer claims."
+          ]
+        },
+        "thumbnail": {
+          "aliases": [
+            "cover",
+            "thumb"
+          ],
+          "label": "Video thumbnail brief",
+          "task": "prompt",
+          "goal": "Create a Facebook video thumbnail concept.",
+          "format": "Concept, text overlay, composition, image prompt, and negative prompt.",
+          "constraints": [
+            "Optimize for clarity on mobile.",
+            "Do not generate the image itself."
+          ]
+        }
+      }
+    },
+    "x": {
+      "name": "X",
+      "aliases": [
+        "twitter"
+      ],
+      "default_type": "post",
+      "default_pack": [
+        "post",
+        "thread",
+        "poll",
+        "video_script"
+      ],
+      "types": {
+        "post": {
+          "aliases": [
+            "tweet"
+          ],
+          "label": "X post",
+          "task": "writing",
+          "goal": "Write a concise standalone X post.",
+          "format": "One polished post plus two alternative angles.",
+          "constraints": [
+            "Make every word earn its place.",
+            "Do not add hashtags unless useful."
+          ]
+        },
+        "thread": {
+          "aliases": [
+            "tweet_thread"
+          ],
+          "label": "X thread",
+          "task": "writing",
+          "goal": "Create a structured thread that rewards continued reading.",
+          "format": "Strong first post, numbered sequence, final takeaway, and CTA.",
+          "constraints": [
+            "Each post should work as an individual unit.",
+            "Avoid repeating the same point."
+          ]
+        },
+        "reply": {
+          "aliases": [
+            "response"
+          ],
+          "label": "X reply",
+          "task": "writing",
+          "goal": "Draft a useful, context-aware reply.",
+          "format": "Primary reply plus a shorter alternative.",
+          "constraints": [
+            "Be direct and non-generic."
+          ]
+        },
+        "poll": {
+          "aliases": [
+            "survey"
+          ],
+          "label": "X poll",
+          "task": "idea",
+          "goal": "Create a discussion-worthy poll.",
+          "format": "Poll question, answer choices, and follow-up post.",
+          "constraints": [
+            "Choices must be distinct and fit the platform."
+          ]
+        },
+        "space_outline": {
+          "aliases": [
+            "space",
+            "live"
+          ],
+          "label": "X Space outline",
+          "task": "planning",
+          "goal": "Plan a live audio Space.",
+          "format": "Title, promise, opening, segments, speaker questions, audience Q&A, and close.",
+          "constraints": [
+            "Build in interaction and time guidance."
+          ]
+        },
+        "video_script": {
+          "aliases": [
+            "video",
+            "short"
+          ],
+          "label": "X video script",
+          "task": "script",
+          "voice_ready": true,
+          "goal": "Create a concise native-video script for X.",
+          "format": "Hook, script, visual beats, and CTA.",
+          "constraints": [
+            "Lead with the claim or insight."
+          ]
+        },
+        "thumbnail": {
+          "aliases": [
+            "thumb",
+            "cover"
+          ],
+          "label": "Video cover brief",
+          "task": "prompt",
+          "goal": "Create a video cover or card concept for X.",
+          "format": "Concept, headline, composition, and image prompt.",
+          "constraints": [
+            "Do not generate the image itself."
+          ]
+        }
+      }
+    },
+    "linkedin": {
+      "name": "LinkedIn",
+      "aliases": [
+        "li"
+      ],
+      "default_type": "post",
+      "default_pack": [
+        "post",
+        "article",
+        "carousel",
+        "video_script",
+        "poll"
+      ],
+      "types": {
+        "post": {
+          "aliases": [
+            "feed_post"
+          ],
+          "label": "LinkedIn post",
+          "task": "writing",
+          "goal": "Write a credible LinkedIn post that delivers a useful professional insight.",
+          "format": "Opening, context or story, insight, practical takeaway, and conversation CTA.",
+          "constraints": [
+            "Avoid fake vulnerability and corporate clich\u00e9s.",
+            "Use short readable paragraphs."
+          ]
+        },
+        "article": {
+          "aliases": [
+            "long",
+            "long_form"
+          ],
+          "label": "LinkedIn article",
+          "task": "writing",
+          "goal": "Create a substantive long-form LinkedIn article.",
+          "format": "Title, introduction, structured sections, examples, conclusion, and CTA.",
+          "constraints": [
+            "Prioritize useful depth over inflated length."
+          ]
+        },
+        "carousel": {
+          "aliases": [
+            "document",
+            "slides"
+          ],
+          "label": "LinkedIn document carousel",
+          "task": "writing",
+          "goal": "Create a professional swipeable carousel.",
+          "format": "Cover, slide-by-slide copy, summary, and CTA.",
+          "constraints": [
+            "One main idea per slide.",
+            "Keep slide copy concise."
+          ]
+        },
+        "newsletter": {
+          "aliases": [
+            "email"
+          ],
+          "label": "LinkedIn newsletter",
+          "task": "writing",
+          "goal": "Write a recurring-newsletter style edition.",
+          "format": "Subject/title, opening, sections, practical takeaway, and next-edition tease.",
+          "constraints": [
+            "Provide standalone value."
+          ]
+        },
+        "video_script": {
+          "aliases": [
+            "video",
+            "short"
+          ],
+          "label": "LinkedIn video script",
+          "task": "script",
+          "voice_ready": true,
+          "goal": "Create a credible professional video script.",
+          "format": "Hook, concise argument or lesson, example, takeaway, and CTA.",
+          "constraints": [
+            "Sound spoken, not like an essay."
+          ]
+        },
+        "poll": {
+          "aliases": [
+            "survey"
+          ],
+          "label": "LinkedIn poll",
+          "task": "idea",
+          "goal": "Create a useful professional poll.",
+          "format": "Question, answer choices, framing post, and follow-up discussion prompt.",
+          "constraints": [
+            "Avoid obvious or leading choices."
+          ]
+        },
+        "thumbnail": {
+          "aliases": [
+            "cover",
+            "thumb"
+          ],
+          "label": "Video or article cover brief",
+          "task": "prompt",
+          "goal": "Create a clean professional cover concept.",
+          "format": "Headline, composition, visual style, image prompt, and negative prompt.",
+          "constraints": [
+            "Keep the design credible and readable.",
+            "Do not generate the image itself."
+          ]
+        }
+      }
+    }
+  }
+}

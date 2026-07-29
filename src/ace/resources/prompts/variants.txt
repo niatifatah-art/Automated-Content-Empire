@@ -1,0 +1,10 @@
+Generate exactly {count} meaningfully different candidates for the following deliverable.
+Each candidate must preserve the same account identity, factual meaning, platform, audience, and language, but use a genuinely different hook, angle, structure, or rhythm.
+
+BASE REQUEST
+{base_prompt}
+
+OUTPUT RULES
+- Return exactly {count} candidates.
+- Start each candidate with a marker on its own line: === CANDIDATE N ===
+- Do not include analysis, scores, explanations, or a preamble.
