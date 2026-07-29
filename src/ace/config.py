@@ -1,202 +1,105 @@
 from __future__ import annotations
 
 import json
-import shutil
-from copy import deepcopy
-from datetime import datetime, timezone
+from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
-from ace.errors import ConfigurationError
-from ace.paths import (
-    accounts_dir,
-    assets_dir,
-    cache_home,
-    catalog_path,
-    config_home,
-    config_path,
-    content_dir,
-    data_home,
-    logs_dir,
-    model_catalog_path,
-    models_dir,
-    profiles_dir,
-    projects_dir,
-    prompts_dir,
-    resource_text,
-    workspace_root,
-)
-from ace.secrets import ensure as ensure_secrets
+from ace.paths import ACEPaths, resolve_paths
+from ace.utils import coerce_scalar, deep_merge, nested_get, nested_set, read_json, write_json
 
 
-def default_config() -> dict[str, Any]:
-    return json.loads(resource_text("default_config.json"))
+def bundled_defaults() -> dict[str, Any]:
+    resource = files("ace.data").joinpath("defaults.json")
+    return json.loads(resource.read_text(encoding="utf-8"))
 
 
-def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-    merged = deepcopy(base)
-    for key, value in override.items():
-        if isinstance(value, dict) and isinstance(merged.get(key), dict):
-            merged[key] = _deep_merge(merged[key], value)
-        else:
-            merged[key] = value
-    return merged
+def _version_tuple(value: Any) -> tuple[int, ...]:
+    parts: list[int] = []
+    for item in str(value or "0").split("."):
+        digits = "".join(ch for ch in item if ch.isdigit())
+        parts.append(int(digits or 0))
+    return tuple(parts)
 
 
-def _migrate_legacy(config: dict[str, Any]) -> dict[str, Any]:
-    if int(config.get("schema_version", 0) or 0) >= 3:
-        return config
-    migrated = default_config()
-    if isinstance(config.get("providers"), dict):
-        migrated["providers"] = _deep_merge(migrated["providers"], config["providers"])
-    if isinstance(config.get("routes"), dict):
-        migrated["routes"] = _deep_merge(migrated["routes"], config["routes"])
-    legacy_model = config.get("ai_model")
-    if isinstance(legacy_model, str) and legacy_model.strip():
-        target = {"provider": "ollama", "model": legacy_model.strip()}
-        for task in ("default", "writing", "script", "review"):
-            migrated["routes"][task] = [target]
-    for key in (
-        "content_language",
-        "default_audience",
-        "default_tone",
-        "generation",
-        "storage",
-        "voice",
-    ):
-        if key in config:
-            if isinstance(config[key], dict) and isinstance(migrated.get(key), dict):
-                migrated[key] = _deep_merge(migrated[key], config[key])
-            else:
-                migrated[key] = config[key]
-    return migrated
+def _enrich_legacy_routes(defaults: dict[str, Any], current: dict[str, Any], merged: dict[str, Any]) -> None:
+    """Add the v2.0.1 cloud fallback ladder without deleting custom routes.
+
+    Older ACE configurations often contain only Gemini 3.6 followed directly
+    by local Qwen.  A normal deep merge preserves that old list, so upgrading
+    the package alone would not fix quota failover.  This migration inserts the
+    new cloud routes before existing local routes and retains custom entries.
+    """
+    if _version_tuple(current.get("version")) >= (2, 0, 1):
+        return
+    current_routes = current.get("routes", {}) if isinstance(current.get("routes"), dict) else {}
+    output: dict[str, Any] = dict(merged.get("routes", {}))
+    for task, desired in defaults.get("routes", {}).items():
+        existing = current_routes.get(task, [])
+        if not isinstance(existing, list):
+            existing = []
+        desired = desired if isinstance(desired, list) else []
+        cloud_desired = [dict(item) for item in desired if not item.get("degraded")]
+        local_existing = [dict(item) for item in existing if item.get("degraded") or item.get("provider") == "ollama"]
+        cloud_existing = [dict(item) for item in existing if item not in local_existing]
+        local_desired = [dict(item) for item in desired if item.get("degraded")]
+        combined: list[dict[str, Any]] = []
+        seen: set[tuple[str, str]] = set()
+        for item in [*cloud_desired, *cloud_existing, *local_existing, *local_desired]:
+            key = (str(item.get("provider")), str(item.get("model")))
+            if key in seen:
+                continue
+            seen.add(key)
+            combined.append(item)
+        output[task] = combined
+    merged["routes"] = output
+
+
+def initialize(workspace: str | Path | None = None, *, force: bool = False, upgrade: bool = False) -> ACEPaths:
+    paths = resolve_paths(workspace)
+    defaults = bundled_defaults()
+    if not paths.config_file.exists() or force:
+        write_json(paths.config_file, defaults)
+    elif upgrade:
+        current = read_json(paths.config_file, {})
+        current = current if isinstance(current, dict) else {}
+        merged = deep_merge(defaults, current)
+        _enrich_legacy_routes(defaults, current, merged)
+        merged["version"] = defaults["version"]
+        merged["schema_version"] = defaults["schema_version"]
+        write_json(paths.config_file, merged)
+    if not paths.secrets_file.exists():
+        paths.secrets_file.write_text(
+            "# ACE secrets — never commit this file\n"
+            "# GEMINI_API_KEY_PRIMARY=\n"
+            "# GEMINI_API_KEY_BACKUP=\n"
+            "# PEXELS_API_KEY=\n"
+            "# PIXABAY_API_KEY=\n",
+            encoding="utf-8",
+        )
+        paths.secrets_file.chmod(0o600)
+    return paths
 
 
 def load(workspace: str | Path | None = None) -> dict[str, Any]:
-    path = config_path(workspace)
-    if not path.exists():
-        return default_config()
-    try:
-        raw = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ConfigurationError(f"Cannot read configuration at {path}: {exc}") from exc
-    if not isinstance(raw, dict):
-        raise ConfigurationError(f"Configuration at {path} must contain a JSON object.")
-    return _deep_merge(default_config(), _migrate_legacy(raw))
+    paths = initialize(workspace)
+    defaults = bundled_defaults()
+    current = read_json(paths.config_file, {})
+    return deep_merge(defaults, current if isinstance(current, dict) else {})
 
 
 def save(config: dict[str, Any], workspace: str | Path | None = None) -> Path:
-    path = config_path(workspace)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    return path
+    paths = resolve_paths(workspace)
+    return write_json(paths.config_file, config)
 
 
-def initialize(workspace: str | Path | None = None, force: bool = False) -> Path:
-    root = workspace_root(workspace)
-    for folder in (
-        config_home(workspace),
-        prompts_dir(workspace),
-        accounts_dir(workspace),
-        profiles_dir(workspace),
-        data_home(workspace),
-        content_dir(workspace),
-        projects_dir(workspace),
-        assets_dir(workspace),
-        logs_dir(workspace),
-        models_dir(workspace),
-        cache_home(workspace),
-    ):
-        folder.mkdir(parents=True, exist_ok=True)
-
-    defaults = {
-        config_path(workspace): resource_text("default_config.json"),
-        catalog_path(workspace): resource_text("content_catalog.json"),
-        model_catalog_path(workspace): resource_text("model_catalog.json"),
-    }
-    for path, text in defaults.items():
-        if force or not path.exists():
-            path.write_text(text.rstrip() + "\n", encoding="utf-8")
-
-    for name in ("content.txt", "review.txt", "variants.txt", "selection.txt", "localize.txt", "profile.txt", "tts.txt", "quality.txt", "fact_check.txt"):
-        prompt_path = prompts_dir(workspace) / name
-        try:
-            text = resource_text(f"prompts/{name}")
-        except FileNotFoundError:
-            continue
-        if force or not prompt_path.exists():
-            prompt_path.write_text(text.rstrip() + "\n", encoding="utf-8")
-
-    ensure_secrets(workspace)
-    return root
+def get(key: str, workspace: str | Path | None = None, default: Any = None) -> Any:
+    return nested_get(load(workspace), key, default)
 
 
-def upgrade(workspace: str | Path | None = None) -> dict[str, Path]:
-    """Upgrade shipped catalogs/prompts while preserving user settings and accounts.
-
-    Existing editable system files are copied to a timestamped backup first.
-    Secrets and accounts are never overwritten. The user's configuration is
-    deep-merged with the v1.7 defaults, then saved with the current schema.
-    """
-
-    initialize(workspace)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    backup = config_home(workspace) / "backups" / f"upgrade-{stamp}"
-    backup.mkdir(parents=True, exist_ok=True)
-
-    candidates = [config_path(workspace), catalog_path(workspace), model_catalog_path(workspace)]
-    candidates.extend(sorted(prompts_dir(workspace).glob("*.txt")))
-    for source in candidates:
-        if not source.exists():
-            continue
-        relative = source.relative_to(config_home(workspace))
-        destination = backup / relative
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, destination)
-
-    merged = load(workspace)
-    shipped = default_config()
-    merged["schema_version"] = shipped.get("schema_version", merged.get("schema_version"))
-    save(merged, workspace)
-    catalog_path(workspace).write_text(resource_text("content_catalog.json").rstrip() + "\n", encoding="utf-8")
-    model_catalog_path(workspace).write_text(resource_text("model_catalog.json").rstrip() + "\n", encoding="utf-8")
-    for name in ("content.txt", "review.txt", "variants.txt", "selection.txt", "localize.txt", "profile.txt", "tts.txt", "quality.txt", "fact_check.txt"):
-        (prompts_dir(workspace) / name).write_text(
-            resource_text(f"prompts/{name}").rstrip() + "\n", encoding="utf-8"
-        )
-    ensure_secrets(workspace)
-    return {"root": workspace_root(workspace), "backup": backup, "config": config_path(workspace)}
-
-
-def show(workspace: str | Path | None = None) -> None:
-    print(json.dumps(load(workspace), indent=2, ensure_ascii=False))
-
-
-def get_value(config: dict[str, Any], dotted_key: str) -> Any:
-    current: Any = config
-    for part in dotted_key.split("."):
-        if not isinstance(current, dict) or part not in current:
-            raise ConfigurationError(f"Unknown configuration key: {dotted_key}")
-        current = current[part]
-    return current
-
-
-def set_value(config: dict[str, Any], dotted_key: str, value: Any) -> None:
-    parts = dotted_key.split(".")
-    current: dict[str, Any] = config
-    for part in parts[:-1]:
-        child = current.get(part)
-        if child is None:
-            child = {}
-            current[part] = child
-        if not isinstance(child, dict):
-            raise ConfigurationError(f"Cannot set child value below '{part}'.")
-        current = child
-    current[parts[-1]] = value
-
-
-def parse_cli_value(value: str) -> Any:
-    try:
-        return json.loads(value)
-    except json.JSONDecodeError:
-        return value
+def set_value(key: str, raw_value: str, workspace: str | Path | None = None) -> Any:
+    config = load(workspace)
+    value = coerce_scalar(raw_value)
+    nested_set(config, key, value)
+    save(config, workspace)
+    return value

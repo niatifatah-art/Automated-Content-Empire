@@ -1,0 +1,22 @@
+{
+  "version": "2.0.1",
+  "date": "2026-07-29",
+  "status": "passed",
+  "unit_tests": {"passed": 19, "failed": 0},
+  "checks": {
+    "compilation": true,
+    "model_scoped_rate_limit_failover": true,
+    "backup_credential_failover": true,
+    "legacy_account_migration": true,
+    "legacy_route_enrichment": true,
+    "source_selftest": true,
+    "wheel_build": true,
+    "wheel_selftest": true,
+    "ffmpeg_vertical_render": true,
+    "caption_overflow_validation": true,
+    "visual_validation": true,
+    "warning_completion_logic": true
+  },
+  "live_external_api_tests": false,
+  "live_external_api_reason": "No private credentials were available in the release sandbox."
+}

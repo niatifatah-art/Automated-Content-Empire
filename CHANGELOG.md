@@ -1,16 +1,49 @@
 # Changelog
 
-## 1.7.0 — 2026-07-29
+## 2.0.1 — 2026-07-29
 
-- Added YAML account sources of truth with AI compilation, version history, rollback, task-specific context checks, and content-history similarity warnings.
-- Added manual, assisted, and Autopilot modes plus `ace create`, `ace guide`, `ace check`, `ace status`, `ace fix`, `ace plan`, `ace models`, `ace settings`, `ace test`, and `ace release verify`.
-- Simplified top-level help while retaining advanced and legacy compatibility commands.
-- Added dynamic Ollama `auto` model selection, live model search/discovery/readiness, named aliases, free-only routing, and Smart Memory safeguards.
-- Added modular Pocket TTS, Kokoro, Piper, and OpenAI TTS routes with account-voice enforcement.
-- Added TTS-safe spoken rewrites, pronunciation normalization, script quality checks, factual-risk checks, and per-stage reports.
-- Added strict reusable-media discovery, account asset libraries, license manifests, branded visual fallbacks, burned subtitles, FFmpeg rendering, black-frame detection, and silence detection.
-- Added 1.7 self-tests and release verification.
+- Added model-aware Gemini quota failover across primary/backup credentials and 3.6 Flash, 3.5 Flash, and 3.5 Flash-Lite.
+- Added safe account migration for the required editing profile.
+- Fixed false-passing empty caption/visual/edit diagnostics.
+- Fixed Gemini credential smoke tests for thinking-enabled models and removed deprecated 3.x sampling parameters.
+- Fixed research counts in interrupted-generation status reports.
 
-## 0.3.0
+## 2.0.0 — 2026-07-29
 
-- Added multi-platform content types, profiles, provider routes, voice auditions, resources, editing packages, and initial FFmpeg rendering.
+### Cloud and resilience
+
+- Added cloud-first routing for research, writing, review, fact checking, quality, and visual planning.
+- Added primary and backup Gemini credential slots with cooldown, failure classification, and state tracking.
+- Disabled silent local-model substitution for quality-sensitive work.
+- Added explicit `--allow-degraded` local emergency mode.
+- Added credential and quota status commands.
+
+### Research and evidence
+
+- Added source discovery, URL ingestion, social-post ingestion, credibility scoring, claim extraction, claim-to-source mapping, and contradiction records.
+- Added ACE-rendered article and social evidence cards.
+- Added optional Playwright capture for official pages and approval-gated nonofficial captures.
+- Separated research references, evidence, reusable media, and generated illustrations.
+
+### Visuals and resources
+
+- Added semantic shot planning and per-shot search queries.
+- Added account assets, Pexels, Pixabay, Openverse, Wikimedia, generated graphics, and cloud image routes.
+- Added vertical subject preservation with a blurred background for landscape media.
+- Added deterministic clip offsets, short transitions, and original nonblack fallback visuals.
+- Added meme catalog, tone-fit checks, generated meme cards, and approval metadata for internet candidates.
+
+### Captions and editing
+
+- Replaced sentence-sized subtitles with an adaptive Caption Director.
+- Added no-caption, phrase, keyword, title, evidence, social, code, statistic, challenge, and CTA modes.
+- Added safe-area fitting, dynamic font sizing, two-line limits, ASS output, accessibility SRT, and overflow validation.
+- Added editing styles for technical, documentary, gaming, challenge, serious, and playful content.
+- Added narration normalization, compression, music ducking hooks, black-frame detection, silence detection, and editing inspection.
+
+### Reliability
+
+- Fixed high-scoring warning reports being incorrectly marked `INCOMPLETE`.
+- Added complete generation status and repair flows.
+- Added unit tests and a full offline 1080×1920 FFmpeg release smoke test.
+- Added approval-gated publishing-plan scaffolding.

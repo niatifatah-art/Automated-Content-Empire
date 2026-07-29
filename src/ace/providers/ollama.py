@@ -1,43 +1,61 @@
 from __future__ import annotations
 
-from ace.errors import ProviderRequestError
-from ace.providers.base import AIProvider, GenerationRequest, ProviderResponse
-from ace.providers.http import request_json
+from ace.http import HTTPError, request
+from ace.providers.base import GenerationRequest, GenerationResult, ProviderFailure
 
 
-class OllamaProvider(AIProvider):
-    def _url(self, path: str) -> str:
-        return f"{self.config.get('base_url', 'http://127.0.0.1:11434').rstrip('/')}{path}"
+class OllamaProvider:
+    name = "ollama"
+    cloud = False
 
-    @property
-    def timeout(self) -> float:
-        return float(self.config.get("timeout_seconds", 300))
+    def __init__(self, base_url: str):
+        self.base_url = base_url.rstrip("/")
 
-    def generate(self, request: GenerationRequest) -> ProviderResponse:
-        payload = {
-            "model": request.model,
-            "prompt": request.prompt,
-            "stream": False,
-            "options": {
-                "temperature": request.temperature,
-                "num_predict": request.max_output_tokens,
-            },
-        }
-        if request.keep_alive is not None:
-            payload["keep_alive"] = request.keep_alive
-        raw = request_json("POST", self._url("/api/generate"), payload=payload, timeout=self.timeout)
-        text = raw.get("response")
-        if not isinstance(text, str) or not text.strip():
-            error = raw.get("error")
-            raise ProviderRequestError(str(error or "Ollama returned no text."))
-        return ProviderResponse(text=text.strip(), raw=raw)
+    def installed_models(self) -> list[str]:
+        try:
+            data = request("GET", f"{self.base_url}/api/tags", timeout=5).json()
+        except Exception:
+            return []
+        return [str(item.get("name")) for item in data.get("models", []) if item.get("name")]
 
-    def list_models(self) -> list[str]:
-        raw = request_json("GET", self._url("/api/tags"), timeout=self.timeout)
-        result: list[str] = []
-        for model in raw.get("models", []):
-            if isinstance(model, dict):
-                name = model.get("name") or model.get("model")
-                if isinstance(name, str):
-                    result.append(name)
-        return sorted(set(result))
+    def resolve_model(self, model: str) -> str:
+        if model not in {"auto", "auto-small"}:
+            return model
+        installed = self.installed_models()
+        if not installed:
+            raise ProviderFailure("No Ollama models are installed.", category="unavailable")
+        preferences = ["qwen2.5", "llama3", "mistral", "gemma"]
+        if model == "auto-small":
+            small = [item for item in installed if any(token in item.lower() for token in ("1b", "2b", "3b", "4b", "7b", "8b"))]
+            if small:
+                installed = small
+        for preference in preferences:
+            match = next((item for item in installed if preference in item.lower()), None)
+            if match:
+                return match
+        return installed[0]
+
+    def generate(self, req: GenerationRequest, credential: str | None = None) -> GenerationResult:
+        model = self.resolve_model(req.model)
+        messages = []
+        if req.system:
+            messages.append({"role": "system", "content": req.system})
+        messages.append({"role": "user", "content": req.prompt})
+        try:
+            response = request(
+                "POST",
+                f"{self.base_url}/api/chat",
+                json_body={"model": model, "messages": messages, "stream": False, "options": {"temperature": req.temperature}},
+                timeout=180,
+                retries=0,
+            )
+        except (HTTPError, RuntimeError) as exc:
+            raise ProviderFailure(str(exc), category="unavailable", retryable=True) from exc
+        data = response.json()
+        text = str(data.get("message", {}).get("content", "")).strip()
+        if not text:
+            raise ProviderFailure("Ollama returned an empty response.", category="malformed")
+        return GenerationResult(text, self.name, model, usage={"eval_count": data.get("eval_count")}, degraded=True)
+
+    def test(self, model: str, credential: str | None = None) -> GenerationResult:
+        return self.generate(GenerationRequest("test", "Reply with exactly: ACE provider test passed", model, temperature=0.0, max_output_tokens=32))
