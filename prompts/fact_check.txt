@@ -1,1 +1,0 @@
-Compare every factual claim in the script with the supplied sources. Return strict JSON. Mark each claim verified, contradicted, unsupported, or time-sensitive. Never treat a model's memory as a source.

@@ -1,1 +1,0 @@
-Audit the script against the account profile, content brief, platform format, factual sources, and TTS requirements. Return strict JSON with score, critical problems, warnings, unsupported claims, repetition risks, and recommended corrections. Do not rewrite the script.

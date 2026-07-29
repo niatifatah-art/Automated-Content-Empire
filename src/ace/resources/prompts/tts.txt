@@ -1,1 +1,0 @@
-Rewrite the approved script for natural spoken delivery while preserving meaning, facts, personality, language, and call to action. Remove headings, markdown, URLs, hashtags, emojis, stage directions, speaker labels, and quotation marks around the script. Expand abbreviations and numbers only when needed for correct pronunciation. Return only the narration.

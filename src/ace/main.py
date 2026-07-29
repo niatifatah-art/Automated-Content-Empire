@@ -3,24 +3,23 @@ from __future__ import annotations
 import sys
 
 from ace.cli import create_parser
-from ace.commands import execute
-from ace.env import load_env
-from ace.errors import ACEError
+from ace.commands import dispatch
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = create_parser()
-    args = parser.parse_args()
-    load_env(getattr(args, "workspace", None))
-
     try:
-        return execute(args)
-    except (ACEError, FileNotFoundError, ValueError) as exc:
-        print(f"ACE error: {exc}", file=sys.stderr)
-        return 2
+        args = parser.parse_args(argv)
+    except SystemExit as exc:
+        return int(exc.code or 0)
+    try:
+        return dispatch(args)
     except KeyboardInterrupt:
         print("\nCancelled.", file=sys.stderr)
         return 130
+    except Exception as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":

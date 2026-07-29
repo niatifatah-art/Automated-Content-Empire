@@ -1,50 +1,53 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, Protocol
 
 
 @dataclass(frozen=True)
 class GenerationRequest:
+    task: str
     prompt: str
     model: str
-    temperature: float = 0.7
+    temperature: float = 0.4
     max_output_tokens: int = 4096
-    keep_alive: Any = None
+    json_mode: bool = False
+    system: str | None = None
 
 
 @dataclass(frozen=True)
-class ProviderResponse:
+class GenerationResult:
     text: str
-    raw: dict[str, Any]
+    provider: str
+    model: str
+    credential_name: str | None = None
+    usage: dict[str, Any] = field(default_factory=dict)
+    degraded: bool = False
 
 
-class AIProvider(ABC):
-    def __init__(self, name: str, config: dict[str, Any]):
-        self.name = name
-        self.config = config
+class ProviderFailure(RuntimeError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        category: str = "unknown",
+        retryable: bool = False,
+        status: int | None = None,
+        retry_after: float | None = None,
+    ):
+        super().__init__(message)
+        self.category = category
+        self.retryable = retryable
+        self.status = status
+        self.retry_after = retry_after
 
-    @abstractmethod
-    def generate(self, request: GenerationRequest) -> ProviderResponse:
-        raise NotImplementedError
 
-    def validate(self) -> None:
-        """Validate static configuration before ACE changes local-model state.
+class TextProvider(Protocol):
+    name: str
+    cloud: bool
 
-        Providers should use this for checks that do not make a generation
-        request, such as required API keys or a missing base URL. Network
-        availability remains the responsibility of ``generate``/``list_models``.
-        """
+    def generate(self, request: GenerationRequest, credential: str | None = None) -> GenerationResult:
+        ...
 
-        return None
-
-    def list_models(self) -> list[str]:
-        return []
-
-    def check(self) -> tuple[bool, str]:
-        try:
-            self.list_models()
-        except Exception as exc:  # pragma: no cover - provider-specific detail
-            return False, str(exc)
-        return True, "Ready"
+    def test(self, model: str, credential: str | None = None) -> GenerationResult:
+        ...
