@@ -531,7 +531,7 @@ def _frame_factory(intent: ShotIntent, visual_format: str | None = None) -> tupl
     if requested == VisualFormat.COMPARISON_GRAPHIC.value or intent.purpose in {"compare", "show_data"} or "comparison" in subject:
         return _comparison_frame, ["option_a", "option_b", "comparison_criteria"], "A labeled comparison is clearer than unrelated stock footage.", VisualFormat.COMPARISON_GRAPHIC.value
     if "code" in subject or "python" in subject or "programming" in subject or "code_state" in required:
-        return _code_logic_frame, ["code", "input", "logic", "result"], "A code-flow explainer makes the programming mechanism visible.", VisualFormat.APPLICATION_DEMO.value
+        return _code_logic_frame, ["code", "input", "logic", "result"], "A code-flow explainer makes the programming mechanism visible.", VisualFormat.ANIMATED_EXPLAINER.value
     if "software" in subject or "api" in subject or "routing" in subject or "workflow" in subject or "architecture" in subject:
         return _software_flow_frame, ["request", "processing_nodes", "response", "directional_flow"], "A structured request route explains the software mechanism.", VisualFormat.ANIMATED_EXPLAINER.value
     if "unencrypted" in subject or "exposed" in subject:
