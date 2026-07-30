@@ -53,7 +53,7 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
-"ace.data" = ["*.json", "*.yaml"]
+"ace.data" = ["*.json", "*.yaml", "templates/**/*.yaml", "templates/**/*.yml", "templates/**/*.webp", "templates/**/*.gif", "templates/**/*.mp4"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
