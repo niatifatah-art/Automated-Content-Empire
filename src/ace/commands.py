@@ -33,8 +33,17 @@ from ace.secrets import ensure_permissions, load as load_secrets
 from ace.sources import add_post, add_url, inspect_url, load_sources
 from ace.status import inspect as inspect_status
 from ace.storage import generations, metadata, resolve_generation
+from ace.state import approve as approve_state, event as state_event, summary as state_summary
 from ace.utils import nested_get, read_json, write_json
 from ace.visuals import collect_for_plan, inspect as inspect_visuals, plan as plan_visuals
+from ace.visual_intelligence.benchmark import run as run_visual_benchmark
+from ace.visual_intelligence.tournament import (
+    approve_decision as approve_visual_decision,
+    explain as explain_visuals,
+    load_candidates as load_visual_candidates,
+    regenerate_shot as regenerate_visual_shot,
+    replace as replace_visual,
+)
 from ace.voice import create_test_tone, generate as generate_voice, prepare as prepare_voice
 
 
@@ -284,11 +293,50 @@ def dispatch(args: Any) -> int:
         return 0
 
     if command == "visuals":
-        if args.visuals_command == "plan": _print_json([item.__dict__ for item in plan_visuals(args.generation, workspace)])
-        elif args.visuals_command == "collect": _print_json([item.__dict__ for item in collect_for_plan(args.generation, workspace)])
-        elif args.visuals_command == "inspect": _print_json(inspect_visuals(args.generation, workspace))
+        if args.visuals_command == "plan":
+            _print_json([item.__dict__ for item in plan_visuals(args.generation, workspace)])
+        elif args.visuals_command == "collect":
+            _print_json([item.__dict__ for item in collect_for_plan(args.generation, workspace)])
+        elif args.visuals_command == "inspect":
+            _print_json(inspect_visuals(args.generation, workspace))
         elif args.visuals_command == "show":
             folder = resolve_generation(args.generation, workspace); _print_json(read_json(folder / "visuals" / "shot-plan.json", []))
+        elif args.visuals_command == "explain":
+            folder = resolve_generation(args.generation, workspace)
+            shot_id = f"shot-{args.shot:03d}" if args.shot else None
+            _print_json(explain_visuals(folder, shot_id))
+        elif args.visuals_command == "candidates":
+            folder = resolve_generation(args.generation, workspace)
+            shot_id = f"shot-{args.shot:03d}"
+            candidates, scores = load_visual_candidates(folder, shot_id)
+            score_map = {item.candidate_id: item.to_dict() for item in scores}
+            _print_json({"shot_id": shot_id, "candidates": [{"candidate": item.to_dict(), "score": score_map.get(item.candidate_id)} for item in candidates]})
+        elif args.visuals_command == "regenerate":
+            folder = resolve_generation(args.generation, workspace)
+            shot_id = f"shot-{args.shot:03d}"
+            decision, shot = regenerate_visual_shot(
+                folder, shot_id, workspace=workspace, cloud_judge=not args.no_cloud_judge, animate_explainers=not args.static
+            )
+            state_event(folder, "visual_regenerated", stage="visual_intelligence", status=decision.status, message=decision.reason, metadata={"shot_id": shot_id})
+            _print_json({"decision": decision.to_dict(), "shot": shot})
+        elif args.visuals_command == "replace":
+            folder = resolve_generation(args.generation, workspace)
+            shot_id = f"shot-{args.shot:03d}"
+            decision = replace_visual(folder, shot_id, args.candidate, approved=args.approve)
+            state_event(folder, "visual_replaced", stage="visual_intelligence", status=decision.status, message=decision.reason, metadata={"shot_id": shot_id, "candidate_id": args.candidate})
+            _print_json(decision.to_dict())
+        elif args.visuals_command == "approve":
+            folder = resolve_generation(args.generation, workspace)
+            shot_id = f"shot-{args.shot:03d}"
+            decision = approve_visual_decision(folder, shot_id)
+            approve_state(folder, "visual_intelligence", subject_id=shot_id, metadata={"candidate_id": decision.selected_candidate_id})
+            _print_json(decision.to_dict())
+        elif args.visuals_command == "benchmark":
+            report = run_visual_benchmark(args.fixtures)
+            _print_json(report)
+            return 0 if report["status"] == "passed" else 1
+        else:
+            print("Use: ace visuals plan|collect|show|inspect|explain|candidates|regenerate|replace|approve|benchmark")
         return 0
 
     if command == "captions":
@@ -312,6 +360,34 @@ def dispatch(args: Any) -> int:
                 config = load_config(workspace); config.setdefault("editing", {})["default_style"] = args.style; save_config(config, workspace)
             plan_captions(args.generation, workspace); plan_visuals(args.generation, workspace); print(render(args.generation, workspace))
         elif args.edit_command == "captions" and args.edit_captions_command == "preview": print(render(args.generation, workspace, preview=True))
+        return 0
+
+    if command == "rerun":
+        folder = resolve_generation(args.generation, workspace)
+        state_event(folder, "rerun_started", stage=args.rerun_from, status="running", message=f"Restarting from {args.rerun_from}.")
+        if args.rerun_from == "captions":
+            plan_captions(folder, workspace)
+            plan_visuals(folder, workspace)
+            collect_for_plan(folder, workspace, cloud_judge=not args.no_cloud_judge)
+            create_package(folder, workspace)
+        elif args.rerun_from == "visual-plan":
+            plan_visuals(folder, workspace)
+            collect_for_plan(folder, workspace, cloud_judge=not args.no_cloud_judge)
+            create_package(folder, workspace)
+        elif args.rerun_from == "editing":
+            create_package(folder, workspace)
+        output = render(folder, workspace, preview=args.preview)
+        state_event(folder, "rerun_finished", stage=args.rerun_from, status="passed", message=str(output))
+        print(output)
+        return 0
+
+    if command == "state":
+        folder = resolve_generation(args.generation, workspace)
+        report = state_summary(folder, event_limit=getattr(args, "limit", 50))
+        if args.state_command == "events":
+            _print_json({"generation": report.get("generation"), "events": report.get("events", [])})
+        else:
+            _print_json(report)
         return 0
 
     if command == "voice":

@@ -1,8 +1,36 @@
-# Automated Content Empire — ACE v2.0.1
+# Automated Content Empire — ACE v2.0.2
 
 ACE is a cloud-first, evidence-aware content production system for YouTube, TikTok, Instagram, Facebook, X, and LinkedIn. It researches a topic, writes and reviews a script, maps important claims to sources, produces narration, plans shot-specific visuals, directs captions adaptively, and renders a validated video with FFmpeg.
 
 ACE v2 is designed around one principle: **finishing a file is not enough; the result must remain factual, visually intentional, legally traceable, and recognizable as the creator’s brand.**
+
+## v2.0.2 Visual Intelligence
+
+ACE now plans each shot before searching for media. A narration segment becomes a structured `ShotIntent`, then several visual formats compete: official evidence, browser or terminal demonstrations, original animated explainers, charts, article/social cards, account assets, licensed stock, typography, and minimal screens.
+
+Pexels and Pixabay remain useful, but generic stock no longer wins by default. Candidates are scored for exact relevance, required objects, forbidden imagery, vertical fit, truthfulness, visual quality, style, provenance, and duplication. Local frames can also be judged by Gemini vision when configured.
+
+The built-in Original Explainer Engine covers shared Wi-Fi networks, exposed/encrypted packets, rogue hotspots, VPN tunnels, passkey flows, browser HTTPS, terminal commands, phone-hotspot settings, code logic, software routing, company partnerships, timelines, challenges, and comparisons. Caption phrases are grouped into idea-level shots, then repositioned after visual selection so important diagram and UI regions remain readable. Every selected visual stores its candidate set, scores, reason, license state, fingerprints, and replacement history.
+
+```bash
+ace visuals benchmark
+ace visuals explain last --shot 4
+ace visuals candidates last --shot 4
+ace visuals regenerate last --shot 4
+ace visuals replace last --shot 4 --candidate CANDIDATE_ID
+ace rerun last --from visual-plan
+ace state show last
+```
+
+A generation now also maintains a SQLite event/state database so stages, attempts, failures, approvals, and repairs survive crashes and remain inspectable. Provider calls emit structured trace events, while image/video fingerprints help reject exact and perceptual duplicates.
+
+Reproduce the offline public-Wi-Fi visual regression:
+
+```bash
+PYTHONPATH=src python scripts/public_wifi_regression.py \
+  --copy-output ./public-wifi-regression.mp4 \
+  --report ./public-wifi-regression.json
+```
 
 ## v2.0.1 reliability fixes
 
@@ -43,8 +71,8 @@ sudo apt install -y python3-venv ffmpeg libsndfile1 espeak-ng fonts-dejavu-core
 Create a clean environment:
 
 ```bash
-unzip Automated-Content-Empire-2.0.1.zip
-cd Automated-Content-Empire-2.0.1
+unzip Automated-Content-Empire-2.0.2.zip
+cd Automated-Content-Empire-2.0.2
 
 python3 -m venv .venv
 source .venv/bin/activate
@@ -85,7 +113,7 @@ Activate the venv in which the old `ace` command is installed, then install v2:
 
 ```bash
 source /path/to/your/old/project/.venv/bin/activate
-cd Automated-Content-Empire-2.0.1
+cd Automated-Content-Empire-2.0.2
 python -m pip install --upgrade pip setuptools wheel
 python -m pip install -e ".[voice]"
 ace init --upgrade

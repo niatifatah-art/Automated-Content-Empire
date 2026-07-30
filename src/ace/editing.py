@@ -72,7 +72,10 @@ def create_package(generation: str | Path, workspace: str | Path | None = None) 
         plan_captions(folder, workspace)
     if not (folder / "visuals" / "shot-plan.json").exists():
         plan_visuals(folder, workspace)
-    shots = collect_for_plan(folder, workspace)
+    shot_rows = read_json(folder / "visuals" / "shot-plan.json", []) or []
+    shots = [Shot(**row) for row in shot_rows]
+    if not shots or any(not shot.resource_path or not Path(shot.resource_path).exists() for shot in shots):
+        shots = collect_for_plan(folder, workspace)
     info = metadata(folder)
     vertical = str(info.get("content_type")) in {"short", "reel", "story", "video_script"} or str(info.get("platform")) in {"tiktok", "instagram"}
     plan_data = {
@@ -240,6 +243,11 @@ def validate_media(
             report["problems"].append("Visible caption layout contains overflow.")
         if visual_report.get("missing_visuals"):
             report["problems"].append("One or more shots has no visual.")
+        intelligence = visual_report.get("visual_intelligence") or {}
+        if intelligence.get("status") == "failed":
+            report["problems"].append("Visual Intelligence validation failed: " + "; ".join(intelligence.get("problems", [])))
+        elif intelligence.get("status") == "warning":
+            report["warnings"].append("Visual Intelligence completed with warnings.")
         write_json(folder / "quality" / "media-report.json", report)
     report["status"] = "failed" if report["problems"] else "warning" if report["warnings"] else "passed"
     if generation is not None:

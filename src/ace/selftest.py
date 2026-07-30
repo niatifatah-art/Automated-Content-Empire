@@ -9,7 +9,6 @@ from ace.captions import inspect as inspect_captions, plan as plan_captions
 from ace.config import initialize
 from ace.editing import create_package, render, validate_media
 from ace.evidence import build_article_cards
-from ace.graphics import create_abstract_visual
 from ace.research import ClaimRecord
 from ace.sources import SourceRecord, save_sources
 from ace.status import inspect as inspect_status
@@ -17,6 +16,7 @@ from ace.storage import create_generation, update_metadata
 from ace.utils import write_json
 from ace.voice import create_test_tone, prepare as prepare_voice
 from ace.visuals import collect_for_plan, inspect as inspect_visuals, plan as plan_visuals
+from ace.visual_intelligence.benchmark import run as run_visual_benchmark
 
 
 def run(suite: str = "quick", *, workspace: str | Path | None = None) -> dict[str, Any]:
@@ -53,18 +53,18 @@ def run(suite: str = "quick", *, workspace: str | Path | None = None) -> dict[st
         create_test_tone(folder / "voice" / "narration.wav", duration=13.0)
         cues = plan_captions(folder, home)
         checks.append({"name": "caption_plan", "passed": bool(cues) and not any(item.overflow for item in cues), "detail": inspect_captions(folder, home)})
-        shots = plan_visuals(folder, home)
-        # Force text-light original visuals so the offline render exercises the real
-        # caption layout without depending on a stock API or duplicating narration.
-        for shot in shots:
-            if not shot.resource_path:
-                card = folder / "visuals" / "generated" / f"selftest-{shot.index:03d}.png"
-                create_abstract_visual(card, concept=shot.search_query or "PASSKEYS", label="ACE SELF TEST", show_concept=False)
-                shot.resource_path = str(card)
-                shot.resource_id = f"selftest-{shot.index}"
-                shot.visual_type = "generated_graphic"
-        write_json(folder / "visuals" / "shot-plan.json", [shot.__dict__ for shot in shots])
-        checks.append({"name": "visual_plan", "passed": not inspect_visuals(folder, home).get("missing_visuals"), "detail": inspect_visuals(folder, home)})
+        benchmark = run_visual_benchmark()
+        checks.append({"name": "visual_benchmark", "passed": benchmark.get("status") == "passed", "detail": {"average_score": benchmark.get("average_score"), "case_count": benchmark.get("case_count")}})
+        plan_visuals(folder, home, cloud_intents=False)
+        shots = collect_for_plan(
+            folder,
+            home,
+            resource_finder=lambda *args, **kwargs: [],
+            cloud_judge=False,
+            animate_explainers=suite == "full",
+        )
+        visual_report = inspect_visuals(folder, home)
+        checks.append({"name": "visual_intelligence", "passed": bool(shots) and not visual_report.get("missing_visuals") and visual_report.get("status") in {"passed", "warning"}, "detail": visual_report})
         create_package(folder, home)
         if suite in {"render", "full", "quick"}:
             full_render = suite == "full"

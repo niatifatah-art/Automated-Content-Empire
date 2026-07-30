@@ -30,6 +30,11 @@ def create_generation(
         "evidence/webpage-captures",
         "evidence/social-posts",
         "visuals/generated",
+        "visuals/generated/explainers",
+        "visuals/generated/typography",
+        "visuals/candidates",
+        "visuals/approved",
+        "visuals/rejected",
         "visuals/stock",
         "resources/publishable",
         "resources/attribution-required",
@@ -41,19 +46,21 @@ def create_generation(
         "exports",
         "temp",
         "publishing",
+        "state",
     ):
         ensure_dir(folder / name)
-    write_json(
-        folder / "metadata.json",
-        {
-            "schema_version": 3,
-            "account_slug": slug,
-            "platform": slugify(platform),
-            "content_type": slugify(content_type),
-            "topic": topic,
-            "created_at": datetime.now().astimezone().isoformat(),
-        },
-    )
+    generation_metadata = {
+        "schema_version": 4,
+        "account_slug": slug,
+        "platform": slugify(platform),
+        "content_type": slugify(content_type),
+        "topic": topic,
+        "created_at": datetime.now().astimezone().isoformat(),
+    }
+    write_json(folder / "metadata.json", generation_metadata)
+    from ace.state import initialize as initialize_state
+
+    initialize_state(folder, generation_metadata)
     return folder
 
 

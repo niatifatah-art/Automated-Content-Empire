@@ -22,7 +22,7 @@ Main commands:
   init, new, account, create, check, status, fix, recent
   models, credentials, quota, secrets, settings
   research, sources, evidence, resources, memes, images
-  visuals, captions, edit, voice, assets, publish
+  visuals, captions, edit, rerun, state, voice, assets, publish
   test, release, guide
 
 Focused help:
@@ -176,6 +176,12 @@ def create_parser() -> argparse.ArgumentParser:
     visuals_sub = visuals.add_subparsers(dest="visuals_command")
     for name in ("plan", "collect", "show", "inspect"):
         item = visuals_sub.add_parser(name); _generation(item)
+    visuals_explain = visuals_sub.add_parser("explain"); _generation(visuals_explain); visuals_explain.add_argument("--shot", type=int)
+    visuals_candidates = visuals_sub.add_parser("candidates"); _generation(visuals_candidates); visuals_candidates.add_argument("--shot", type=int, required=True)
+    visuals_regenerate = visuals_sub.add_parser("regenerate"); _generation(visuals_regenerate); visuals_regenerate.add_argument("--shot", type=int, required=True); visuals_regenerate.add_argument("--no-cloud-judge", action="store_true"); visuals_regenerate.add_argument("--static", action="store_true")
+    visuals_replace = visuals_sub.add_parser("replace"); _generation(visuals_replace); visuals_replace.add_argument("--shot", type=int, required=True); visuals_replace.add_argument("--candidate", required=True); visuals_replace.add_argument("--approve", action="store_true")
+    visuals_approve = visuals_sub.add_parser("approve"); _generation(visuals_approve); visuals_approve.add_argument("--shot", type=int, required=True)
+    visuals_benchmark = visuals_sub.add_parser("benchmark"); visuals_benchmark.add_argument("--fixtures")
 
     captions = sub.add_parser("captions")
     captions_sub = captions.add_subparsers(dest="captions_command")
@@ -194,6 +200,17 @@ def create_parser() -> argparse.ArgumentParser:
     edit_captions = edit_sub.add_parser("captions")
     edit_captions_sub = edit_captions.add_subparsers(dest="edit_captions_command")
     edit_captions_preview = edit_captions_sub.add_parser("preview"); _generation(edit_captions_preview)
+
+    rerun = sub.add_parser("rerun")
+    _generation(rerun)
+    rerun.add_argument("--from", dest="rerun_from", choices=("visual-plan", "captions", "editing", "render"), required=True)
+    rerun.add_argument("--preview", action="store_true")
+    rerun.add_argument("--no-cloud-judge", action="store_true")
+
+    state = sub.add_parser("state")
+    state_sub = state.add_subparsers(dest="state_command")
+    state_show = state_sub.add_parser("show"); _generation(state_show)
+    state_events = state_sub.add_parser("events"); _generation(state_events); state_events.add_argument("--limit", type=int, default=50)
 
     voice = sub.add_parser("voice")
     voice_sub = voice.add_subparsers(dest="voice_command")

@@ -38,7 +38,7 @@ def request(
     cache: Cache | None = None,
     cache_ttl: int = 0,
 ) -> HTTPResponse:
-    normalized_headers = {"User-Agent": "ACE/2.0.1 (+https://github.com/niatifatah-art/Automated-Content-Empire)"}
+    normalized_headers = {"User-Agent": "ACE/2.0.2 (+https://github.com/niatifatah-art/Automated-Content-Empire)"}
     normalized_headers.update(headers or {})
     payload = None
     if json_body is not None:
