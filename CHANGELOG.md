@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.0.2 — 2026-07-30
+
+### Visual Intelligence
+
+- Added strict `ShotIntent`, `VisualCandidate`, `VisualScore`, `VisualDecision`, and validation contracts.
+- Added a deterministic Visual Intent Planner with optional cloud refinement.
+- Added a candidate-format router and tournament across evidence, demonstrations, original explainers, account assets, stock, typography, charts, timelines, and minimal screens.
+- Added original animated explainers and controlled demonstrations for shared networks, encryption, rogue hotspots, VPNs, passkeys, browser HTTPS, terminal commands, phone hotspots, code logic, software routing, partnerships, timelines, challenges, and comparisons.
+- Grouped caption phrases into sentence/idea-level shots so visual changes follow meaning rather than every subtitle chunk.
+- Added post-selection caption adaptation so evidence, demonstrations, and explainers keep their important regions readable.
+- Added deterministic relevance scoring plus an optional Gemini frame judge.
+- Added per-shot candidate artifacts, explanations, approvals, replacement history, and strict relevance/filler thresholds.
+- Added the ten-case visual benchmark and public-Wi-Fi regression rules.
+
+### Reliability and workflow
+
+- Added a SQLite stage/event/approval database for every generation.
+- Added provider attempt traces with generation, stage, shot, model, credential, timing, failure category, and usage metadata.
+- Added exact and perceptual image/video fingerprints for duplicate detection and visual provenance.
+- Added `ace visuals explain`, `candidates`, `regenerate`, `replace`, `approve`, and `benchmark`.
+- Added `ace rerun --from visual-plan|captions|editing|render` and `ace state show|events`.
+- Added GitHub Actions CI, package verification, a repository secret scan, sanitized `.env.example`, and contribution guidance.
+- Updated offline self-tests to exercise the real Visual Intelligence route.
+
 ## 2.0.1 — 2026-07-29
 
 - Added model-aware Gemini quota failover across primary/backup credentials and 3.6 Flash, 3.5 Flash, and 3.5 Flash-Lite.

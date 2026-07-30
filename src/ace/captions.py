@@ -46,6 +46,7 @@ class CaptionCue:
     lines: list[str]
     reason: str
     overflow: bool = False
+    sentence_index: int = 0
 
 
 def audio_duration(path: Path | None) -> float | None:
@@ -163,14 +164,14 @@ def plan(generation: str | Path, workspace: str | Path | None = None, *, mood: s
     sentences = _sentences(text)
     minimum = int(settings.get("words_per_chunk_min", 3))
     maximum = int(settings.get("words_per_chunk_max", 6))
-    spoken_chunks: list[str] = []
-    for sentence in sentences:
-        spoken_chunks.extend(_chunks(sentence, minimum, maximum))
+    spoken_chunks: list[tuple[str, int]] = []
+    for sentence_index, sentence in enumerate(sentences, 1):
+        spoken_chunks.extend((chunk, sentence_index) for chunk in _chunks(sentence, minimum, maximum))
     voice = folder / "voice" / "narration.wav"
     duration = audio_duration(voice)
     if not duration:
-        duration = max(6.0, sum(max(1.4, len(chunk.split()) / 2.7) for chunk in spoken_chunks))
-    weights = [max(1.0, len(chunk.split())) for chunk in spoken_chunks]
+        duration = max(6.0, sum(max(1.4, len(chunk.split()) / 2.7) for chunk, _ in spoken_chunks))
+    weights = [max(1.0, len(chunk.split())) for chunk, _ in spoken_chunks]
     total_weight = sum(weights) or 1.0
     has_evidence = bool(read_json(folder / "evidence" / "evidence-plan.json", []))
     vertical = str(meta.get("content_type")) in {"short", "reel", "story", "video_script"} or str(meta.get("platform")) in {"tiktok", "instagram"}
@@ -184,7 +185,7 @@ def plan(generation: str | Path, workspace: str | Path | None = None, *, mood: s
     max_lines = int(settings.get("maximum_lines", 2))
     cues: list[CaptionCue] = []
     current = 0.0
-    for index, (chunk, weight) in enumerate(zip(spoken_chunks, weights), 1):
+    for index, ((chunk, sentence_index), weight) in enumerate(zip(spoken_chunks, weights), 1):
         cue_duration = duration * weight / total_weight
         end = duration if index == len(spoken_chunks) else current + cue_duration
         mode, visible, reason = _director(chunk, index, len(spoken_chunks), mood, topic, has_evidence=has_evidence)
@@ -210,6 +211,7 @@ def plan(generation: str | Path, workspace: str | Path | None = None, *, mood: s
                 lines=lines,
                 reason=reason,
                 overflow=overflow,
+                sentence_index=sentence_index,
             )
         )
         current = end
@@ -288,3 +290,87 @@ def inspect(generation: str | Path, workspace: str | Path | None = None) -> dict
     }
     write_json(folder / "quality" / "caption-report.json", report)
     return report
+
+
+def adapt_to_visuals(generation: str | Path, workspace: str | Path | None = None) -> list[CaptionCue]:
+    """Direct visible captions after the actual visual format is selected.
+
+    Caption planning happens before resource selection, so this second pass
+    prevents titles from covering explainer headers, browser address bars,
+    terminal commands, evidence cards, or text-heavy typography cards.
+    Accessibility SRT always keeps the complete spoken text.
+    """
+    folder = resolve_generation(generation, workspace)
+    rows = read_json(folder / "captions" / "caption-plan.json", []) or []
+    if not rows:
+        return []
+    cues = [CaptionCue(**row) for row in rows]
+    shots = read_json(folder / "visuals" / "shot-plan.json", []) or []
+    config = load_config(workspace)
+    settings = config.get("captions", {})
+    meta = metadata(folder)
+    vertical = str(meta.get("content_type")) in {"short", "reel", "story", "video_script"} or str(meta.get("platform")) in {"tiktok", "instagram"}
+    canvas = (1080, 1920) if vertical else (1920, 1080)
+    draw = ImageDraw.Draw(Image.new("RGB", canvas))
+    max_width = int(canvas[0] * float(settings.get("safe_width_ratio", 0.82)))
+    max_height = int(canvas[1] * 0.20)
+    start_size = int(settings.get("font_size_vertical" if vertical else "font_size_landscape", 68 if vertical else 48))
+    minimum_size = int(settings.get("minimum_font_size", 34))
+    max_lines = int(settings.get("maximum_lines", 2))
+
+    by_index = {cue.index: cue for cue in cues}
+    text_heavy = {
+        "official_evidence", "article_card", "social_post_card", "kinetic_typography", "minimal_screen",
+    }
+    top_ui = {
+        "animated_explainer", "browser_demo", "terminal_demo", "application_demo", "comparison_graphic", "data_chart", "timeline",
+    }
+    for shot in shots:
+        visual_format = str(shot.get("visual_type") or "")
+        indices = list((shot.get("metadata") or {}).get("caption_cue_indices") or [])
+        for index in indices:
+            cue = by_index.get(int(index))
+            if not cue:
+                continue
+            if visual_format in text_heavy:
+                cue.mode = "accessibility_only"
+                cue.visible_text = ""
+                cue.lines = []
+                cue.position = "bottom"
+                cue.reason += " Hidden because the selected visual already carries deliberate readable text."
+                cue.overflow = False
+                continue
+            if visual_format in top_ui:
+                cue.position = "bottom"
+                if cue.mode == "full_title":
+                    cue.mode = "short_phrase"
+                    cue.visible_text = " ".join(_clean_visible(cue.spoken_text).split()[:6])
+                    cue.reason += " Converted from a top title to a bottom phrase to protect the explainer header."
+                elif cue.mode in {"code_panel", "article_headline", "social_post"}:
+                    cue.mode = "accessibility_only"
+                    cue.visible_text = ""
+                    cue.lines = []
+                    cue.reason += " Hidden because the selected visual contains the exact technical or source text."
+                    cue.overflow = False
+                    continue
+                if cue.visible_text:
+                    selected_font, lines = fit_text(
+                        cue.visible_text,
+                        draw,
+                        max_width,
+                        max_height,
+                        start_size=min(start_size, cue.font_size or start_size),
+                        min_size=minimum_size,
+                        max_lines=max_lines,
+                    )
+                    cue.font_size = selected_font.size
+                    cue.lines = lines
+                    cue.overflow = len(lines) > max_lines or any(
+                        draw.textbbox((0, 0), line, font=selected_font)[2] > max_width for line in lines
+                    )
+
+    ordered = [by_index[index] for index in sorted(by_index)]
+    write_json(folder / "captions" / "caption-plan.json", [asdict(item) for item in ordered])
+    _write_srt(folder, ordered)
+    _write_ass(folder, ordered, canvas, settings)
+    return ordered

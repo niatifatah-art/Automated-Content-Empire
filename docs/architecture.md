@@ -65,7 +65,7 @@ Article/social cards normally suppress duplicate burned text because the source 
 
 ## Visual Director
 
-Each caption/narration cue becomes a shot with:
+Caption phrases are grouped into sentence/idea-level shots. Each shot carries:
 
 - semantic search query
 - purpose
@@ -76,7 +76,9 @@ Each caption/narration cue becomes a shot with:
 - transition
 - reason for selection
 
-Resource ranking considers token overlap, orientation, provider, and diversity. If no reusable resource succeeds, ACE generates a text-light original visual so the renderer never silently outputs black footage.
+The Visual Intelligence router compares official evidence, demonstrations, original explainers, generated concepts, charts, account assets, licensed stock, typography, and minimal screens. Deterministic scoring rejects forbidden imagery and generic filler; an optional cloud frame judge can inspect sampled frames. If no external resource succeeds, ACE creates a purpose-built visual rather than silently outputting black footage.
+
+After selection, the Caption Director adapts caption visibility and placement to the chosen format. Provider attempts are written as structured trace events, and exact/perceptual fingerprints support duplicate detection.
 
 ## Rendering
 
@@ -99,3 +101,20 @@ The validator checks:
 - `INCOMPLETE`: one or more required stages is missing or failed.
 
 A script report with status `warning`, no critical problems, and a score at or above the configured gate is valid. This fixes the v1.7 false-incomplete result.
+
+## Visual Intelligence subsystem
+
+The video route uses explicit contracts rather than passing search strings directly to stock providers.
+
+```text
+ShotIntent
+  → Candidate generators
+  → deterministic score
+  → optional cloud frame judge
+  → VisualDecision
+  → shot plan
+  → renderer
+  → validation
+```
+
+The subsystem is located in `src/ace/visual_intelligence/`. Original explainers and candidate artifacts remain separate from the renderer so they can be tested, replaced, or approved independently. Generation state is persisted in `state/generation.sqlite3`; JSON artifacts remain the human-readable interchange format.

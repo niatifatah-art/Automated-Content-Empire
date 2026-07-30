@@ -86,3 +86,31 @@ ace test quick|render|full
 ace release verify
 ace guide [TOPIC]
 ```
+
+## Visual Intelligence
+
+```bash
+ace visuals plan last
+ace visuals collect last
+ace visuals inspect last
+ace visuals explain last
+ace visuals explain last --shot 4
+ace visuals candidates last --shot 4
+ace visuals regenerate last --shot 4
+ace visuals regenerate last --shot 4 --no-cloud-judge --static
+ace visuals replace last --shot 4 --candidate CANDIDATE_ID
+ace visuals replace last --shot 4 --candidate CANDIDATE_ID --approve
+ace visuals approve last --shot 4
+ace visuals benchmark
+```
+
+## Restart and state
+
+```bash
+ace rerun last --from visual-plan
+ace rerun last --from captions
+ace rerun last --from editing
+ace rerun last --from render
+ace state show last
+ace state events last --limit 100
+```

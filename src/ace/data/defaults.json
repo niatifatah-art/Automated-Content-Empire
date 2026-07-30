@@ -1,6 +1,6 @@
 {
-  "schema_version": 4,
-  "version": "2.0.1",
+  "schema_version": 5,
+  "version": "2.0.2",
   "execution": {
     "cloud_first": true,
     "allow_degraded_local": false,
@@ -247,6 +247,33 @@
         "model": "auto-small",
         "degraded": true
       }
+    ],
+    "visual_judge": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "critical": true
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "critical": true
+      },
+      {
+        "provider": "ollama",
+        "model": "auto",
+        "degraded": true
+      }
     ]
   },
   "research": {
@@ -476,5 +503,45 @@
     "aspect_ratio_landscape": "16:9",
     "label_generated_evidence": true,
     "never_generate_fake_evidence": true
+  },
+  "visual_intelligence": {
+    "enabled": true,
+    "cloud_intent_planner": true,
+    "cloud_vision_judge": true,
+    "vision_model": "gemini-3.5-flash",
+    "judge_frame_count": 3,
+    "cloud_judge_candidate_limit": 3,
+    "maximum_candidates_per_shot": 12,
+    "stock_candidates_per_query": 4,
+    "animate_explainers": true,
+    "preserve_candidate_artifacts": true,
+    "acceptance": {
+      "minimum_relevance": 78,
+      "minimum_clarity": 72,
+      "minimum_vertical_fit": 70,
+      "minimum_truthfulness": 95,
+      "maximum_duplicate_risk": 25,
+      "minimum_average_relevance": 78,
+      "maximum_generic_filler_ratio": 0.1
+    },
+    "format_priority": [
+      "official_evidence",
+      "browser_demo",
+      "terminal_demo",
+      "application_demo",
+      "animated_explainer",
+      "generated_concept_image",
+      "article_card",
+      "social_post_card",
+      "data_chart",
+      "comparison_graphic",
+      "timeline",
+      "meme",
+      "account_asset",
+      "stock_video",
+      "stock_image",
+      "kinetic_typography",
+      "minimal_screen"
+    ]
   }
 }

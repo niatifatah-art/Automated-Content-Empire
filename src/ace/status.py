@@ -5,6 +5,7 @@ from typing import Any
 
 from ace.config import load as load_config
 from ace.storage import resolve_generation
+from ace.state import db_path as state_db_path, summary as state_summary
 from ace.utils import read_json, write_json
 
 
@@ -18,6 +19,7 @@ def inspect(generation: str | Path, workspace: str | Path | None = None) -> dict
     media = read_json(folder / "quality" / "media-report.json", {}) or {}
     captions = read_json(folder / "quality" / "caption-report.json", {}) or {}
     visuals = read_json(folder / "quality" / "visual-report.json", {}) or {}
+    visual_intelligence = read_json(folder / "quality" / "visual-intelligence-report.json", {}) or {}
     manifest = read_json(folder / "licenses" / "manifest.json", {}) or {}
     sources = read_json(folder / "research" / "sources.json", []) or []
     script_ok = (
@@ -36,7 +38,28 @@ def inspect(generation: str | Path, workspace: str | Path | None = None) -> dict
         "evidence": {"ok": (folder / "evidence" / "evidence-plan.json").exists(), "detail": "ready" if (folder / "evidence" / "evidence-plan.json").exists() else "not built"},
         "tts_preparation": {"ok": (folder / "script" / "tts-ready.txt").exists(), "detail": "ready" if (folder / "script" / "tts-ready.txt").exists() else "missing"},
         "narration": {"ok": (folder / "voice" / "narration.wav").exists(), "detail": "ready" if (folder / "voice" / "narration.wav").exists() else "missing"},
-        "visual_plan": {"ok": (folder / "visuals" / "shot-plan.json").exists() and visuals.get("status") in {"passed", "warning"} and int(visuals.get("shot_count", 0)) > 0 and not visuals.get("missing_visuals"), "detail": f"{visuals.get('shot_count', 0)} shots"},
+        "visual_plan": {
+            "ok": (
+                (folder / "visuals" / "shot-plan.json").exists()
+                and visuals.get("status") in {"passed", "warning"}
+                and int(visuals.get("shot_count", 0)) > 0
+                and not visuals.get("missing_visuals")
+            ),
+            "detail": f"{visuals.get('shot_count', 0)} shots",
+        },
+        "visual_intelligence": {
+            "ok": (
+                visual_intelligence.get("status") in {"passed", "warning"}
+                and int(visual_intelligence.get("shot_count", 0)) > 0
+                and not visual_intelligence.get("problems")
+            ),
+            "detail": (
+                f"{visual_intelligence.get('average_relevance', 0)} relevance; "
+                f"{visual_intelligence.get('generic_filler_ratio', 0):.1%} filler"
+                if visual_intelligence
+                else "not run"
+            ),
+        },
         "captions": {"ok": (folder / "captions" / "styled-captions.ass").exists() and captions.get("status") in {"passed", "warning"} and int(captions.get("cue_count", 0)) > 0, "detail": f"{captions.get('visible_count', 0)} visible; {captions.get('hidden_count', 0)} clean moments"},
         "editing_plan": {"ok": (folder / "editing" / "edit-plan.json").exists(), "detail": "ready" if (folder / "editing" / "edit-plan.json").exists() else "missing"},
         "final_render": {"ok": (folder / "exports" / "final.mp4").exists(), "detail": "exists" if (folder / "exports" / "final.mp4").exists() else "missing"},
@@ -45,7 +68,7 @@ def inspect(generation: str | Path, workspace: str | Path | None = None) -> dict
     content_type = str(metadata.get("content_type", ""))
     required = ["script_generation", "script_quality", "fact_verification"]
     if content_type in {"short", "long_video", "reel", "story", "video_script"}:
-        required += ["tts_preparation", "narration", "visual_plan", "captions", "editing_plan", "final_render", "final_validation"]
+        required += ["tts_preparation", "narration", "visual_plan", "visual_intelligence", "captions", "editing_plan", "final_render", "final_validation"]
     missing = [name for name in required if not stages[name]["ok"]]
     warnings: list[str] = []
     if script.get("status") == "warning":
@@ -54,7 +77,19 @@ def inspect(generation: str | Path, workspace: str | Path | None = None) -> dict
         warnings.append("fact verification completed with warnings")
     if media.get("status") == "warning":
         warnings.append("media validation completed with warnings")
+    if visual_intelligence.get("status") == "warning":
+        warnings.extend(str(item) for item in visual_intelligence.get("warnings", []) or ["visual intelligence completed with warnings"])
     overall = "INCOMPLETE" if missing else "COMPLETE_WITH_WARNINGS" if warnings else "COMPLETE"
-    report = {"folder": str(folder), "overall": overall, "required": required, "missing": missing, "warnings": warnings, "stages": stages}
+    workflow_state = state_summary(folder, event_limit=12) if state_db_path(folder).exists() else None
+    report = {
+        "folder": str(folder),
+        "overall": overall,
+        "required": required,
+        "missing": missing,
+        "warnings": list(dict.fromkeys(warnings)),
+        "stages": stages,
+        "visual_intelligence": visual_intelligence,
+        "workflow_state": workflow_state,
+    }
     write_json(folder / "status.json", report)
     return report

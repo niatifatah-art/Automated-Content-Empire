@@ -1,0 +1,110 @@
+cases:
+  - id: public-wifi-unencrypted
+    topic: Why public Wi-Fi can expose your data
+    narration: If the network lacks encryption, other people on it may see exposed traffic.
+    purpose: explain_mechanism
+    mood: serious_technical
+    expected_formats: [animated_explainer, browser_demo]
+    expected_subject_terms: [unencrypted, traffic]
+    required_elements: [shared_access_point, multiple_devices, data_packets, missing_encryption_lock]
+    forbidden_elements: [fire, financial_chart, office_worker, generic_hacker]
+    forbidden_primary_formats: [stock_video, stock_image]
+
+  - id: public-wifi-rogue-hotspot
+    topic: Why public Wi-Fi can expose your data
+    narration: A rogue hotspot can copy the name of a real network and route your connection through an attacker-controlled access point.
+    purpose: explain_mechanism
+    mood: serious_technical
+    expected_formats: [animated_explainer, application_demo]
+    expected_subject_terms: [rogue, wifi]
+    required_elements: [two_similar_wifi_names, trusted_network, fake_network, attacker_control]
+    forbidden_elements: [generic_hacker, financial_chart]
+    forbidden_primary_formats: [stock_video]
+
+  - id: public-wifi-phone-hotspot
+    topic: Why public Wi-Fi can expose your data
+    narration: For sensitive work, use your phone's personal hotspot instead.
+    purpose: demonstrate
+    mood: serious_technical
+    expected_formats: [application_demo, account_asset, stock_video]
+    expected_subject_terms: [phone, hotspot]
+    required_elements: [smartphone, hotspot_settings, connected_device]
+    forbidden_elements: [generic_wifi_router, financial_chart]
+    forbidden_primary_formats: [animated_explainer]
+
+  - id: passkey-flow
+    topic: Why passkeys are safer than passwords
+    narration: Your device uses Face ID or a fingerprint to sign a challenge without sending the private key to the website.
+    purpose: explain_mechanism
+    mood: technical_dynamic
+    expected_formats: [animated_explainer, application_demo]
+    expected_subject_terms: [passkey, biometric]
+    required_elements: [device, biometric_confirmation, public_private_key_flow]
+    forbidden_elements: [generic_password_typing, financial_chart, generic_hacker]
+    forbidden_primary_formats: [stock_video]
+
+  - id: nvidia-partnership
+    topic: Nvidia announces a partnership with another company
+    narration: Nvidia officially announced a new partnership to build AI infrastructure.
+    purpose: show_evidence
+    mood: clean_documentary
+    expected_formats: [official_evidence, article_card]
+    expected_subject_terms: [nvidia, partnership]
+    required_elements: [source_name, headline, date]
+    forbidden_elements: [unverified_social_post, generic_business_handshake]
+    forbidden_primary_formats: [stock_video]
+
+  - id: linux-command
+    topic: Linux package cleanup
+    narration: Run sudo apt autoremove in the terminal, then review the packages before confirming.
+    purpose: demonstrate
+    mood: playful_tech
+    expected_formats: [terminal_demo, kinetic_typography]
+    expected_subject_terms: [sudo, apt]
+    required_elements: [terminal, exact_command, visible_result]
+    forbidden_elements: [random_typing, generic_code_rain]
+    forbidden_primary_formats: [stock_video]
+
+  - id: python-mistake
+    topic: A Python mistake beginners make
+    narration: The bug happens because the function mutates the list while the loop is iterating over it.
+    purpose: explain_mechanism
+    mood: playful_tech
+    expected_formats: [animated_explainer, kinetic_typography]
+    expected_subject_terms: [function, mutates, list]
+    required_elements: []
+    forbidden_elements: []
+    forbidden_primary_formats: [stock_video]
+
+  - id: gpu-comparison
+    topic: New gaming GPU comparison
+    narration: The new GPU is faster than the previous model, but it also costs more.
+    purpose: compare
+    mood: gaming_hype
+    expected_formats: [comparison_graphic, data_chart]
+    expected_subject_terms: [gpu, faster]
+    required_elements: [option_a, option_b, comparison_criteria]
+    forbidden_elements: [unlabeled_chart]
+    forbidden_primary_formats: [stock_video]
+
+  - id: serious-breach
+    topic: A serious cybersecurity breach
+    narration: The company confirmed the breach in an official incident report.
+    purpose: show_evidence
+    mood: serious_technical
+    expected_formats: [official_evidence, article_card]
+    expected_subject_terms: [company, confirmed, breach]
+    required_elements: [source_name, headline, date]
+    forbidden_elements: [unverified_social_post, generic_business_handshake]
+    forbidden_primary_formats: [meme, stock_video]
+
+  - id: seven-day-challenge
+    topic: I used Linux for seven days
+    narration: On day three, the Wi-Fi driver broke, so the challenge nearly ended early.
+    purpose: challenge_progress
+    mood: challenge
+    expected_formats: [account_asset, timeline, kinetic_typography]
+    expected_subject_terms: [wifi, driver]
+    required_elements: [progress, day_or_step, result]
+    forbidden_elements: []
+    forbidden_primary_formats: [official_evidence]

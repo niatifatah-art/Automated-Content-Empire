@@ -13,6 +13,7 @@ from ace.providers.ollama import OllamaProvider
 from ace.providers.openai_compat import OpenAICompatibleProvider
 from ace.secrets import load as load_secrets
 from ace.utils import read_json, utc_now_iso, write_json
+from ace.tracing import emit as emit_trace, new_trace_id
 
 
 @dataclass
@@ -188,14 +189,26 @@ class ProviderRouter:
         json_mode: bool = False,
         system: str | None = None,
         no_fallback: bool = False,
+        metadata: dict[str, Any] | None = None,
     ) -> GenerationResult:
         provider = provider or self.default_provider
         model = model or self.default_model
         no_fallback = no_fallback or self.default_no_fallback
         routes = self._routes(task, provider, model)
         failures: list[str] = []
+        trace_id = new_trace_id("model")
+        trace_metadata = {"task": task, **(metadata or {})}
+        emit_trace(
+            "model.route.start",
+            workspace=self.workspace,
+            trace_id=trace_id,
+            metadata=trace_metadata,
+            route_count=len(routes),
+            no_fallback=no_fallback,
+            free_only=self.free_only,
+        )
 
-        for route in routes:
+        for route_index, route in enumerate(routes):
             provider_name = str(route.get("provider"))
             selected_model = str(route.get("model"))
             degraded = bool(route.get("degraded")) or not bool(self.config.get("providers", {}).get(provider_name, {}).get("cloud", False))
@@ -220,9 +233,34 @@ class ProviderRouter:
                     failures.append(f"{provider_name}/{selected_model}/{credential.name}: cooldown or disabled")
                     continue
                 request = GenerationRequest(task, prompt, selected_model, temperature, max_output_tokens, json_mode, system)
+                started = time.monotonic()
+                emit_trace(
+                    "model.attempt.start",
+                    workspace=self.workspace,
+                    trace_id=trace_id,
+                    metadata=trace_metadata,
+                    route_index=route_index,
+                    provider=provider_name,
+                    model=selected_model,
+                    credential=credential.name,
+                    degraded=degraded,
+                )
                 try:
                     result = instance.generate(request, credential.value or None)
                     self._mark_success(provider_name, credential, selected_model)
+                    elapsed = time.monotonic() - started
+                    emit_trace(
+                        "model.attempt.success",
+                        workspace=self.workspace,
+                        trace_id=trace_id,
+                        metadata=trace_metadata,
+                        provider=provider_name,
+                        model=selected_model,
+                        credential=credential.name,
+                        elapsed_seconds=round(elapsed, 4),
+                        usage=result.usage,
+                        degraded=result.degraded or degraded,
+                    )
                     return GenerationResult(
                         text=result.text,
                         provider=result.provider,
@@ -233,6 +271,20 @@ class ProviderRouter:
                     )
                 except ProviderFailure as exc:
                     self._mark_failure(provider_name, credential, selected_model, exc)
+                    elapsed = time.monotonic() - started
+                    emit_trace(
+                        "model.attempt.failure",
+                        workspace=self.workspace,
+                        trace_id=trace_id,
+                        metadata=trace_metadata,
+                        provider=provider_name,
+                        model=selected_model,
+                        credential=credential.name,
+                        elapsed_seconds=round(elapsed, 4),
+                        category=exc.category,
+                        retry_after=exc.retry_after,
+                        error=str(exc),
+                    )
                     failures.append(f"{provider_name}/{selected_model}/{credential.name}: {exc.category}: {exc}")
                     if no_fallback:
                         raise
