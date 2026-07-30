@@ -1,0 +1,52 @@
+schema_version: 1
+id: tech-news
+version: 1.0.0
+identity:
+  name: Tech News
+  genre: news
+  tone: current, precise, energetic
+description: Source-led technology news with official evidence, concise context, product visuals, and restrained commentary.
+best_use_cases: [company announcements, product launches, software releases, security incidents]
+audience: technology enthusiasts and professionals
+selection:
+  keywords: [announced, launch, released, update, deal, company, microsoft, openai, nvidia, apple, google, linux]
+  content_types: [short, reel, long_video]
+controls:
+  locked:
+    source_policy: primary_sources_first
+    factual_policy: strict
+  overridable:
+    creative_style: technical_dynamic
+    media_mode: auto
+    meme_mode: auto
+    quality_mode: best
+    duration_seconds: 60
+    caption_density: medium
+  adaptive:
+    pacing_curve: fast_then_context
+    transition_palette: [cut, quick_fade]
+workflow:
+  stages: [brief, research, primary_sources, script, claims, evidence, narration, resources, asset_judging, timeline, render, repair, validate]
+creative:
+  hook_strategy: what changed and why it matters
+  storytelling_framework: announcement, evidence, context, consequence, outlook
+  editing_philosophy: lead with official material, then use relevant product footage and clean explainers
+  camera_language: [official capture, product detail, interface demo, source card, comparison]
+  captions: names, numbers, and short claims
+  cta: optional discussion question
+resources:
+  preferred: [official_capture, account_library, company_media, pexels, pixabay, openverse, generated_concept]
+  approval_for_unknown_license: true
+  audio: [modern_news_bed, soft_impact, restrained_whoosh]
+capabilities:
+  required: [research, primary_source_capture, factual_verification, evidence_cards, stock_image_search]
+  optional: [stock_video_search, browser_capture, generated_image, remotion, otio_export]
+quality:
+  hard_fail: [unsafe_media, incompatible_license, unverified_high_risk_claim, missing_primary_source, corrupt_render]
+  repair: [weak_source, generic_broll, repeated_evidence, missing_context]
+preview:
+  cover: preview/cover.webp
+  video: preview/preview.mp4
+  estimated_minutes: 8
+  estimated_cost_usd: 0
+  difficulty: medium
