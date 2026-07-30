@@ -10,6 +10,21 @@ permissions:
   contents: read
 
 jobs:
+  source-snapshot:
+    name: Source snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload exact source tree
+        uses: actions/upload-artifact@v4
+        with:
+          name: ace-source-${{ github.sha }}
+          path: |
+            .
+            !.git/**
+          include-hidden-files: true
+          retention-days: 3
+
   test:
     name: Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
