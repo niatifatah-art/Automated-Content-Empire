@@ -1,0 +1,56 @@
+schema_version: 1
+id: horror-story
+version: 1.0.0
+identity:
+  name: Horror Story
+  genre: suspense
+  tone: unsettling
+  color_language: low-key, cold shadows, controlled red accents
+description: Cinematic short-form suspense with continuity, escalating tension, restrained captions, and a strong final reveal.
+best_use_cases: [fictional suspense, mystery stories, creepy encounters, urban legends]
+audience: young adult general audience
+selection:
+  keywords: [horror, scary, creepy, strange, mysterious, nightmare, haunted, umbrella, hotel, shadow]
+  content_types: [short, reel, story, long_video]
+controls:
+  locked:
+    genre: suspense
+    humor_policy: none
+    continuity_policy: strict
+  overridable:
+    creative_style: serious_technical
+    media_mode: broll
+    meme_mode: off
+    quality_mode: balanced
+    duration_seconds: 60
+    caption_density: minimal
+  adaptive:
+    camera_language: cinematic
+    pacing_curve: slow_to_fast
+    transition_palette: [cut, fade, match_cut]
+workflow:
+  stages: [brief, script, scene_plan, continuity, narration, resources, asset_judging, audio_direction, timeline, render, repair, validate]
+creative:
+  hook_strategy: immediate unexplained object or event
+  storytelling_framework: setup, repetition, escape, false safety, reveal
+  editing_philosophy: establish geography, privilege object and reaction close-ups, shorten cuts toward the reveal
+  camera_language: [wide establishing, object macro, over-the-shoulder, footsteps, doorway framing, shadow detail]
+  captions: minimal
+  cta: none
+resources:
+  preferred: [account_library, pexels, pixabay, generated_scene, freesound]
+  continuity_fields: [characters, locations, persistent_props, prop_colors, time_of_day]
+  approval_for_unknown_license: true
+  audio: [ambience, footsteps, doors, tension_drone, impact_sting]
+capabilities:
+  required: [scene_planning, continuity_bible, stock_video_search, stock_image_search, audio_ducking, sfx_search]
+  optional: [generated_image, generated_video, remotion, otio_export]
+quality:
+  hard_fail: [unsafe_media, incompatible_license, corrupt_render, missing_narration]
+  repair: [low_broll, continuity_break, repeated_visual, weak_reveal, missing_audio]
+preview:
+  cover: preview/cover.webp
+  video: preview/preview.mp4
+  estimated_minutes: 8
+  estimated_cost_usd: 0
+  difficulty: medium
