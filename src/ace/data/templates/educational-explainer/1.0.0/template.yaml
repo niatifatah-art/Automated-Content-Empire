@@ -1,0 +1,53 @@
+schema_version: 1
+id: educational-explainer
+version: 1.0.0
+identity:
+  name: Educational Explainer
+  genre: education
+  tone: clear, energetic, trustworthy
+description: Concept-first teaching with demonstrations, diagrams, examples, and adaptive captions.
+best_use_cases: [science explanations, how things work, tutorials, learning content]
+audience: learners and curious general audiences
+selection:
+  keywords: [explain, how, why, learn, tutorial, works, education, lesson]
+  content_types: [short, reel, long_video]
+  default: true
+controls:
+  locked:
+    clarity_policy: concept_before_decoration
+    factual_policy: evidence_required_when_claimed
+  overridable:
+    creative_style: technical_dynamic
+    media_mode: auto
+    meme_mode: auto
+    quality_mode: balanced
+    duration_seconds: 60
+    caption_density: adaptive
+  adaptive:
+    pacing_curve: concept_dependent
+    transition_palette: [cut, quick_fade]
+workflow:
+  stages: [brief, research, script, claims, narration, scene_plan, resources, asset_judging, timeline, render, repair, validate]
+creative:
+  hook_strategy: useful result or counterintuitive question
+  storytelling_framework: question, model, example, verification, recap
+  editing_philosophy: show mechanisms directly and use B-roll only when literal context adds understanding
+  camera_language: [demonstration, annotated close-up, comparison, clean explainer]
+  captions: adaptive
+  cta: practical next step
+resources:
+  preferred: [official_capture, account_library, pexels, pixabay, openverse, animated_explainer, generated_concept]
+  approval_for_unknown_license: true
+  audio: [subtle_music, soft_ticks, restrained_whoosh]
+capabilities:
+  required: [research, factual_verification, animated_explainer, demonstration, caption_direction]
+  optional: [stock_video_search, stock_image_search, browser_capture, terminal_capture, remotion]
+quality:
+  hard_fail: [unsafe_media, incompatible_license, unverified_high_risk_claim, corrupt_render]
+  repair: [unclear_mechanism, repeated_visual, caption_overflow, low_semantic_match]
+preview:
+  cover: preview/cover.webp
+  video: preview/preview.mp4
+  estimated_minutes: 7
+  estimated_cost_usd: 0
+  difficulty: medium
