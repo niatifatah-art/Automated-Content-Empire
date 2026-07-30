@@ -74,7 +74,7 @@ def run(workspace: Path, *, copy_output: Path | None = None) -> dict[str, object
             {"id": "s3", "title": "VPN guidance", "url": "https://example.com/vpn", "official": True},
         ],
     )
-    write_json(folder / "evidence" / "evidence-plan.json", {"items": []})
+    write_json(folder / "evidence" / "evidence-plan.json", [])
     prepare_voice(folder, workspace)
     create_test_tone(folder / "voice" / "narration.wav", duration=28.0)
     plan_captions(folder, workspace)
