@@ -1,0 +1,52 @@
+schema_version: 1
+id: funny-facts
+version: 1.0.0
+identity:
+  name: Funny Facts
+  genre: infotainment
+  tone: playful, quick, mildly absurd
+description: Fast factual shorts with a curiosity hook, visual proof, concise jokes, and optional original reaction beats.
+best_use_cases: [fun facts, surprising science, unusual history, everyday mysteries]
+audience: broad short-form audience
+selection:
+  keywords: [fact, facts, weird, surprising, unbelievable, did, know, strange]
+  content_types: [short, reel, story]
+controls:
+  locked:
+    factual_policy: evidence_required
+    humor_policy: contextual
+  overridable:
+    creative_style: playful_tech
+    media_mode: auto
+    meme_mode: auto
+    quality_mode: balanced
+    duration_seconds: 45
+    caption_density: medium
+  adaptive:
+    pacing_curve: fast
+    transition_palette: [cut, push, quick_fade]
+workflow:
+  stages: [brief, research, script, claims, narration, resources, asset_judging, audio_direction, timeline, render, repair, validate]
+creative:
+  hook_strategy: surprising claim followed by immediate proof
+  storytelling_framework: curiosity, explanation, escalation, payoff
+  editing_philosophy: change visual on each idea, use reactions only at genuine punchlines
+  camera_language: [macro detail, human reaction, demonstration, evidence insert]
+  captions: keywords and short phrases
+  cta: optional question
+resources:
+  preferred: [official_capture, account_library, pexels, pixabay, openverse, generated_concept, freesound]
+  approval_for_unknown_license: true
+  audio: [light_music, pop, whoosh, comedic_sting]
+capabilities:
+  required: [research, factual_verification, stock_video_search, stock_image_search, caption_direction]
+  optional: [meme_generation, generated_image, remotion, sfx_search]
+quality:
+  hard_fail: [unsafe_media, incompatible_license, unverified_high_risk_claim, corrupt_render]
+  repair: [weak_hook, low_visual_variety, unsupported_claim, excessive_meme]
+preview:
+  cover: preview/cover.webp
+  video: preview/preview.mp4
+  estimated_minutes: 6
+  estimated_cost_usd: 0
+  difficulty: easy
