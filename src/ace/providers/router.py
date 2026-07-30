@@ -142,7 +142,7 @@ class ProviderRouter:
                     "failure_count": int(current.get("failure_count", 0)) + 1,
                 }
             )
-            if failure.category in {"rate_limit", "outage", "network"}:
+            if failure.category in {"rate_limit", "daily_quota", "outage", "network"}:
                 fallback = float(self.config.get("credentials", {}).get("gemini", {}).get("cooldown_seconds", 60))
                 cooldown = failure.retry_after if failure.retry_after is not None else fallback
                 current["cooldown_until"] = time.time() + max(1.0, float(cooldown))

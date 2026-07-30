@@ -12,13 +12,17 @@ class ACEParser(argparse.ArgumentParser):
 
 Cloud-first, evidence-aware content production with adaptive editing.
 
-Core workflow:
+Simple workflow:
+  ace make "Why passkeys matter" --look fun
+  ace review
+  ace redo 4
+  ace open
+
+Advanced workflow:
   ace create youtube short "Why passkeys matter" --auto --both
-  ace status last
-  ace edit inspect last
-  ace edit rerender last --style technical_dynamic
 
 Main commands:
+  make, review, redo, open, checkup
   init, new, account, create, check, status, fix, recent
   models, credentials, quota, secrets, settings
   research, sources, evidence, resources, memes, images
@@ -60,6 +64,47 @@ def _create_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--profile", dest="account_slug")
 
 
+def _simple_make_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--platform", choices=("youtube", "tiktok", "instagram", "facebook"), default="youtube")
+    parser.add_argument("--format", dest="content_type", choices=("short", "reel", "story", "long_video"), default="short")
+    parser.add_argument(
+        "--look", "--style", dest="style",
+        choices=("adaptive", "tech", "clean", "hype", "challenge", "serious", "fun", "technical_dynamic", "clean_documentary", "gaming_hype", "serious_technical", "playful_tech"),
+        default="adaptive",
+        help="Creative look: tech, clean, hype, challenge, serious or fun",
+    )
+    parser.add_argument(
+        "--mode", "--quality", dest="quality",
+        choices=("quick", "balanced", "best"), default="balanced",
+        help="How much time and cloud budget to spend",
+    )
+    parser.add_argument(
+        "--footage", "--media", dest="media",
+        choices=("mixed", "auto", "original", "broll"), default="mixed",
+        help="mixed combines B-roll and original visuals; original avoids stock; broll strongly favors literal footage",
+    )
+    parser.add_argument(
+        "--humor", "--memes", dest="memes",
+        choices=("auto", "off", "on"), default="auto",
+        help="Use memes only when natural, never, or actively consider them",
+    )
+    output = parser.add_mutually_exclusive_group()
+    output.add_argument("--package", dest="production_mode", action="store_const", const="package")
+    output.add_argument("--render", dest="production_mode", action="store_const", const="render")
+    output.add_argument("--both", dest="production_mode", action="store_const", const="both")
+    parser.add_argument("--provider")
+    parser.add_argument("--model")
+    parser.add_argument("--no-fallback", action="store_true")
+    parser.add_argument("--allow-degraded", action="store_true")
+    parser.add_argument("--free-only", action="store_true")
+    parser.add_argument("--preview", action="store_true")
+    parser.add_argument("--voice", dest="voice", action="store_true", default=True)
+    parser.add_argument("--no-voice", dest="voice", action="store_false")
+    parser.add_argument("--instructions", default="")
+    parser.add_argument("--reference", "--ref", help="Optional reference video used to match pacing")
+    parser.add_argument("--profile", dest="account_slug")
+
+
 def create_parser() -> argparse.ArgumentParser:
     parser = ACEParser(prog="ace")
     parser.add_argument("--version", action="version", version=f"ACE {__version__}")
@@ -70,6 +115,32 @@ def create_parser() -> argparse.ArgumentParser:
     init.add_argument("path", nargs="?")
     init.add_argument("--force", action="store_true")
     init.add_argument("--upgrade", action="store_true")
+
+    make = sub.add_parser("make", help="Create a finished video with simple creative controls")
+    make.add_argument("topic", nargs="+")
+    _simple_make_options(make)
+
+    review = sub.add_parser("review", aliases=["score"], help="Review the latest generation in one concise report")
+    _generation(review)
+    review.add_argument("--json", action="store_true")
+
+    improve = sub.add_parser("improve", aliases=["redo"], help="Improve one shot or rebuild the creative edit")
+    improve.add_argument("shot_pos", nargs="?", type=int, help="Shot number to regenerate")
+    improve.add_argument("--generation", default="last")
+    improve.add_argument("--shot", type=int, help=argparse.SUPPRESS)
+    improve.add_argument("--look", "--style", dest="style", choices=("adaptive", "tech", "clean", "hype", "challenge", "serious", "fun", "technical_dynamic", "clean_documentary", "gaming_hype", "serious_technical", "playful_tech"))
+    improve.add_argument("--no-cloud-judge", action="store_true")
+    improve.add_argument("--static", action="store_true")
+    improve.add_argument("--preview", action="store_true")
+
+    play = sub.add_parser("play", aliases=["open"], help="Open the latest final video")
+    _generation(play)
+    play.add_argument("--preview", action="store_true")
+
+    doctor = sub.add_parser("doctor", aliases=["checkup"], help="Check whether ACE is ready")
+    doctor.add_argument("--live", action="store_true")
+    doctor.add_argument("--offline", dest="live", action="store_false")
+    doctor.set_defaults(live=False)
 
     new = sub.add_parser("new")
     new.add_argument("--name", required=False)

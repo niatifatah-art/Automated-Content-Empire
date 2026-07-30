@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 
 from ace.config import load as load_config
-from ace.storage import resolve_generation
+from ace.storage import metadata, resolve_generation
 from ace.state import approve as record_approval, event as state_event
 from ace.media_fingerprint import fingerprint_bundle, tokens as fingerprint_tokens
 from ace.utils import ensure_dir, read_json, write_json
@@ -16,6 +16,7 @@ from ace.visual_intelligence.candidates import (
     explainer_candidate,
     generated_concept_candidate,
     materialize,
+    meme_candidate,
     stock_candidates,
     typography_candidate,
 )
@@ -68,6 +69,20 @@ def load_intents(folder: Path) -> list[ShotIntent]:
     return [ShotIntent.from_dict(row) for row in rows]
 
 
+
+def _save_intent(folder: Path, intent: ShotIntent) -> None:
+    rows = load_intents(folder)
+    replaced = False
+    for index, item in enumerate(rows):
+        if item.shot_id == intent.shot_id:
+            rows[index] = intent
+            replaced = True
+            break
+    if not replaced:
+        rows.append(intent)
+    write_json(folder / "visuals" / "shot-intents.json", [item.to_dict() for item in rows])
+
+
 def load_decisions(folder: Path) -> list[VisualDecision]:
     rows = read_json(_decision_path(folder), []) or []
     return [VisualDecision.from_dict(row) for row in rows]
@@ -114,11 +129,11 @@ def generate_candidates(
     candidates: list[VisualCandidate] = []
     candidates.extend(evidence_candidates(folder, intent))
 
-    # Generate one strong ACE-native candidate. Other formats (evidence,
-    # account assets, cloud illustration, stock and typography) still compete,
-    # while avoiding several expensive video renders for the same short shot.
+    # Generate more than one ACE-native candidate so the tournament compares
+    # genuinely different visual languages instead of rubber-stamping one template.
     requested_ace_formats = [item for item in intent.preferred_formats if item in ACE_RENDERABLE_FORMATS]
-    for visual_format in requested_ace_formats[:1]:
+    ace_candidate_limit = max(1, int(settings.get("ace_candidates_per_shot", 2)))
+    for visual_format in requested_ace_formats[:ace_candidate_limit]:
         candidates.append(
             explainer_candidate(
                 folder,
@@ -141,6 +156,13 @@ def generate_candidates(
             candidates.append(generated_concept_candidate(folder, intent, workspace))
         except Exception as exc:
             intent.metadata.setdefault("candidate_generation_warnings", []).append(f"Cloud concept image unavailable: {exc}")
+
+    generation_meta = metadata(folder)
+    meme_mode = str(generation_meta.get("meme_mode") or "auto")
+    if VisualFormat.MEME.value in intent.preferred_formats or meme_mode == "on":
+        item = meme_candidate(folder, intent, mode=meme_mode)
+        if item is not None:
+            candidates.append(item)
 
     if any(item in intent.preferred_formats for item in (VisualFormat.KINETIC_TYPOGRAPHY.value, VisualFormat.MINIMAL_SCREEN.value)):
         candidates.append(typography_candidate(folder, intent, label="HOOK" if intent.purpose == "hook" else "KEY IDEA"))
@@ -175,6 +197,49 @@ def generate_candidates(
     return output[:maximum]
 
 
+
+def _creative_selection_rank(candidate: VisualCandidate, score: VisualScore, intent: ShotIntent, media_mode: str) -> float:
+    """Apply a small creative preference without overriding semantic quality."""
+    rank = score.overall
+    live = candidate.format in {VisualFormat.ACCOUNT_ASSET.value, VisualFormat.STOCK_VIDEO.value}
+    explanatory = candidate.format in {
+        VisualFormat.ANIMATED_EXPLAINER.value,
+        VisualFormat.BROWSER_DEMO.value,
+        VisualFormat.APPLICATION_DEMO.value,
+        VisualFormat.TERMINAL_DEMO.value,
+        VisualFormat.COMPARISON_GRAPHIC.value,
+        VisualFormat.DATA_CHART.value,
+        VisualFormat.TIMELINE.value,
+    }
+    evidence = candidate.format in {
+        VisualFormat.OFFICIAL_EVIDENCE.value,
+        VisualFormat.ARTICLE_CARD.value,
+        VisualFormat.SOCIAL_POST_CARD.value,
+    }
+    if intent.evidence_required:
+        if evidence:
+            rank += 12
+        elif live:
+            rank -= 10
+        return rank
+
+    literal_beat = intent.literalness in {"literal", "mixed"} and intent.purpose in {
+        "hook", "support", "establish_context", "demonstrate", "reaction"
+    }
+    mechanism = intent.literalness == "abstract_mechanism" or intent.purpose == "explain_mechanism"
+    if media_mode == "broll" and literal_beat and live:
+        rank += 8 if candidate.format == VisualFormat.ACCOUNT_ASSET.value else 6
+    elif media_mode == "auto" and literal_beat and live:
+        rank += 3
+    if mechanism and explanatory:
+        rank += 5
+    if mechanism and live:
+        rank -= 5
+    if candidate.format == VisualFormat.MEME.value:
+        rank += 4 if intent.humor_allowed and intent.purpose not in {"show_evidence", "show_data"} else -20
+    return rank
+
+
 def run_tournament(
     folder: Path,
     intent: ShotIntent,
@@ -199,10 +264,19 @@ def run_tournament(
         animate_explainers=animate_explainers,
         generate_cloud_images=generate_cloud_images,
     )
+    _save_intent(folder, intent)
     deterministic_scores = [score_candidate(intent, candidate, used_fingerprints=used_fingerprints, thresholds=thresholds) for candidate in candidates]
-    ranked = sorted(zip(candidates, deterministic_scores), key=lambda item: item[1].overall, reverse=True)
+    media_mode = str(metadata(folder).get("media_mode") or "auto")
+    ranked = sorted(
+        zip(candidates, deterministic_scores),
+        key=lambda item: _creative_selection_rank(item[0], item[1], intent, media_mode),
+        reverse=True,
+    )
     judged: list[tuple[VisualCandidate, VisualScore]] = []
-    judge_limit = int(settings.get("cloud_judge_candidate_limit", 3))
+    quality_mode = str(metadata(folder).get("quality_mode") or "balanced")
+    configured_judge_limit = int(settings.get("cloud_judge_candidate_limit", 3))
+    per_quality = settings.get("cloud_judge_candidates_by_quality", {"quick": 0, "balanced": 1, "best": 2})
+    judge_limit = min(configured_judge_limit, int(per_quality.get(quality_mode, 1)))
 
     for rank, (candidate, base_score) in enumerate(ranked):
         current = candidate
@@ -218,7 +292,13 @@ def run_tournament(
             score = judge_candidate(intent, current, score, workspace, enabled=cloud_judge)
         judged.append((current, score))
 
-    judged.sort(key=lambda item: (item[1].decision == DecisionStatus.ACCEPTED.value, item[1].overall), reverse=True)
+    judged.sort(
+        key=lambda item: (
+            item[1].decision == DecisionStatus.ACCEPTED.value,
+            _creative_selection_rank(item[0], item[1], intent, media_mode),
+        ),
+        reverse=True,
+    )
     accepted = [item for item in judged if item[1].decision == DecisionStatus.ACCEPTED.value]
     needs_approval = [item for item in judged if item[1].decision == DecisionStatus.NEEDS_APPROVAL.value]
     status = DecisionStatus.ACCEPTED.value

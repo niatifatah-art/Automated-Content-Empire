@@ -12,7 +12,7 @@ cp -a ~/.cache/ace ~/.cache/ace.backup-before-v2 2>/dev/null || true
 
 ```bash
 source /path/to/ace/.venv/bin/activate
-cd Automated-Content-Empire-2.0.1
+cd Automated-Content-Empire-2.1.0
 python -m pip install --upgrade pip setuptools wheel
 python -m pip install -e ".[voice]"
 ace init --upgrade

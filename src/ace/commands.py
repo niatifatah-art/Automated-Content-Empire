@@ -16,6 +16,8 @@ from ace import accounts
 from ace.autopilot import create_auto
 from ace.captions import inspect as inspect_captions, plan as plan_captions
 from ace.config import get as config_get, initialize, load as load_config, save as save_config, set_value
+from ace.creative import edit_directive
+from ace.creative_quality import inspect as inspect_creative
 from ace.diagnostics import check as run_check, quota_status
 from ace.editing import create_package, inspect as inspect_editing, render
 from ace.evidence import build as build_evidence, capture_official_page
@@ -32,11 +34,12 @@ from ace.selftest import run as run_selftest
 from ace.secrets import ensure_permissions, load as load_secrets
 from ace.sources import add_post, add_url, inspect_url, load_sources
 from ace.status import inspect as inspect_status
-from ace.storage import generations, metadata, resolve_generation
+from ace.storage import generations, metadata, resolve_generation, update_metadata
 from ace.state import approve as approve_state, event as state_event, summary as state_summary
 from ace.utils import nested_get, read_json, write_json
-from ace.visuals import collect_for_plan, inspect as inspect_visuals, plan as plan_visuals
+from ace.visuals import choose_mood, collect_for_plan, inspect as inspect_visuals, plan as plan_visuals
 from ace.visual_intelligence.benchmark import run as run_visual_benchmark
+from ace.visual_intelligence.contracts import ShotIntent
 from ace.visual_intelligence.tournament import (
     approve_decision as approve_visual_decision,
     explain as explain_visuals,
@@ -73,6 +76,21 @@ def _open(path: Path) -> None:
 
 def _normalize_platform(value: str) -> str:
     return {"tt": "tiktok", "ig": "instagram", "yt": "youtube"}.get(value, value)
+
+
+_LOOK_ALIASES = {
+    "tech": "technical_dynamic",
+    "clean": "clean_documentary",
+    "hype": "gaming_hype",
+    "serious": "serious_technical",
+    "fun": "playful_tech",
+}
+
+
+def _normalize_look(value: str | None) -> str | None:
+    if value is None:
+        return None
+    return _LOOK_ALIASES.get(value, value)
 
 
 def _print_status(report: dict[str, Any]) -> None:
@@ -115,12 +133,155 @@ def _create(args: Any) -> int:
     return 0
 
 
+def _simple_make(args: Any) -> int:
+    variants = {"quick": 1, "balanced": 2, "best": 3}[args.quality]
+    return_code = create_auto(
+        args.platform,
+        args.content_type,
+        " ".join(args.topic).strip(),
+        workspace=_workspace(args),
+        account_slug=args.account_slug,
+        provider=args.provider,
+        model=args.model,
+        no_fallback=args.no_fallback,
+        allow_degraded=args.allow_degraded,
+        output_mode=args.production_mode or "both",
+        preview=args.preview,
+        instructions=args.instructions,
+        variants=variants,
+        voice=args.voice,
+        resources=args.media != "original",
+        free_only=args.free_only,
+        creative_style=_normalize_look(args.style) or "adaptive",
+        media_mode="auto" if args.media == "mixed" else args.media,
+        meme_mode=args.memes,
+        quality_mode=args.quality,
+        reference_video=args.reference,
+    )
+    return 0 if return_code else 1
+
+
+def _review_report(generation: str, workspace: str | Path | None) -> dict[str, Any]:
+    folder = resolve_generation(generation, workspace)
+    return {
+        "generation": str(folder),
+        "topic": metadata(folder).get("topic"),
+        "status": inspect_status(folder, workspace),
+        "visuals": inspect_visuals(folder, workspace),
+        "captions": inspect_captions(folder, workspace),
+        "editing": inspect_editing(folder, workspace),
+        "creative": inspect_creative(folder, workspace),
+        "state": state_summary(folder, event_limit=12),
+        "final_video": str(folder / "exports" / "final.mp4") if (folder / "exports" / "final.mp4").exists() else None,
+    }
+
+
+def _print_review(report: dict[str, Any]) -> None:
+    status = report["status"]
+    visuals = report["visuals"]
+    captions = report["captions"]
+    editing = report["editing"]
+    creative = report["creative"]
+    print(f"ACE review — {report.get('topic') or Path(report['generation']).name}")
+    print("-" * 72)
+    print(f"Overall: {status.get('overall')}")
+    print(f"Visuals: {visuals.get('status')} | shots={visuals.get('shot_count', 0)} | relevance={visuals.get('average_visual_relevance', 'n/a')}")
+    print(f"Captions: {captions.get('status')} | overflow={captions.get('overflow_count', 0)}")
+    print(f"Editing: {editing.get('status')} | duration={editing.get('duration', 'n/a')}s")
+    print(f"Creative: {creative.get('status')} | score={creative.get('score')} | b-roll={creative.get('live_broll_ratio', 0):.0%} | static={creative.get('static_card_ratio', 0):.0%}")
+    if creative.get("warnings"):
+        print("Creative notes: " + "; ".join(creative["warnings"]))
+    if status.get("warnings"):
+        print("Warnings: " + "; ".join(status["warnings"]))
+    if status.get("missing"):
+        print("Missing: " + ", ".join(status["missing"]))
+    print("Final: " + (report.get("final_video") or "not rendered"))
+
+
+def _improve(args: Any, workspace: str | Path | None) -> int:
+    generation = getattr(args, "generation", "last")
+    folder = resolve_generation(generation, workspace)
+    style = _normalize_look(getattr(args, "style", None))
+    if style == "adaptive":
+        info = metadata(folder)
+        script_path = folder / "script" / "tts-ready.txt"
+        if not script_path.exists():
+            script_path = folder / "selected.md"
+        script = script_path.read_text(encoding="utf-8") if script_path.exists() else ""
+        style = choose_mood(str(info.get("topic") or ""), script)
+    if style:
+        update_metadata(folder, creative_style=style, editing_mood=style)
+    shot_number = getattr(args, "shot", None) or getattr(args, "shot_pos", None)
+    if shot_number:
+        shot_id = f"shot-{shot_number:03d}"
+        if style:
+            rows = read_json(folder / "visuals" / "shot-plan.json", []) or []
+            for row in rows:
+                current = str((row.get("metadata") or {}).get("shot_id") or f"shot-{int(row.get('index', 0)):03d}")
+                if current != shot_id:
+                    continue
+                intent_row = dict((row.get("metadata") or {}).get("intent") or {})
+                if intent_row:
+                    intent = ShotIntent.from_dict(intent_row)
+                    intent.mood = style
+                    metadata_row = dict(row.get("metadata") or {})
+                    metadata_row["creative"] = edit_directive(intent, int(row.get("index") or shot_number), style=style).to_dict()
+                    metadata_row["intent"] = intent.to_dict()
+                    row["metadata"] = metadata_row
+                    row["mood"] = style
+            write_json(folder / "visuals" / "shot-plan.json", rows)
+        shot_id = f"shot-{shot_number:03d}"
+        decision, _ = regenerate_visual_shot(
+            folder,
+            shot_id,
+            workspace=workspace,
+            cloud_judge=not args.no_cloud_judge,
+            animate_explainers=not args.static,
+        )
+        state_event(folder, "visual_regenerated", stage="visual_intelligence", status=decision.status, message=decision.reason, metadata={"shot_id": shot_id})
+    else:
+        plan_visuals(folder, workspace, refresh_captions=False)
+        collect_for_plan(folder, workspace, cloud_judge=not args.no_cloud_judge, animate_explainers=not args.static)
+    create_package(folder, workspace)
+    output = render(folder, workspace, preview=args.preview)
+    print(output)
+    return 0
+
+
 def dispatch(args: Any) -> int:
     workspace = _workspace(args)
     command = args.command
     if not command:
-        print(f"ACE {__version__}\nRun 'ace --help' or create your first project with:\n  ace create youtube short \"Your topic\" --auto --both")
+        print(f"ACE {__version__}\nRun 'ace --help' or create your first project with:\n  ace make \"Your topic\"")
         return 0
+
+    if command == "make":
+        return _simple_make(args)
+
+    if command in {"review", "score"}:
+        report = _review_report(args.generation, workspace)
+        _print_json(report) if args.json else _print_review(report)
+        return 0
+
+    if command in {"improve", "redo"}:
+        return _improve(args, workspace)
+
+    if command in {"play", "open"}:
+        folder = resolve_generation(args.generation, workspace)
+        output = folder / "exports" / ("preview.mp4" if args.preview else "final.mp4")
+        if not output.exists():
+            print(f"No {'preview' if args.preview else 'final'} video exists yet: {output}", file=sys.stderr)
+            return 1
+        _open(output)
+        print(output)
+        return 0
+
+    if command in {"doctor", "checkup"}:
+        report = run_check(workspace, live=args.live)
+        print(f"ACE doctor: {report['status'].upper()}")
+        for item in report["checks"]:
+            print(f"{item['status'].upper():12} {item['name']:22} {item.get('detail')}")
+        return 0 if report["status"] == "ready" else 1
 
     if command == "init":
         target_workspace = args.path or workspace
