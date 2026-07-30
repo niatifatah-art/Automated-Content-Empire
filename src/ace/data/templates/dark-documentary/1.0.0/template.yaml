@@ -1,0 +1,52 @@
+schema_version: 1
+id: dark-documentary
+version: 1.0.0
+identity:
+  name: Dark Documentary
+  genre: documentary
+  tone: serious, atmospheric, investigative
+description: Evidence-led documentary storytelling with cinematic context, controlled pacing, source transparency, and restrained motion graphics.
+best_use_cases: [historical events, investigations, business stories, cybersecurity incidents, social phenomena]
+audience: mature general audience
+selection:
+  keywords: [documentary, history, investigation, incident, scandal, rise, fall, hidden, true, story]
+  content_types: [short, reel, long_video]
+controls:
+  locked:
+    source_policy: traceable
+    humor_policy: none
+  overridable:
+    creative_style: clean_documentary
+    media_mode: auto
+    meme_mode: off
+    quality_mode: best
+    duration_seconds: 90
+    caption_density: minimal
+  adaptive:
+    pacing_curve: measured_with_escalation
+    transition_palette: [cut, fade, dissolve]
+workflow:
+  stages: [brief, research, chronology, script, claims, evidence, narration, scene_plan, resources, asset_judging, audio_direction, timeline, render, repair, validate]
+creative:
+  hook_strategy: unresolved question or consequential event
+  storytelling_framework: context, catalyst, escalation, evidence, consequence, reflection
+  editing_philosophy: establish time and place, alternate evidence with cinematic context, avoid sensational filler
+  camera_language: [archive, establishing wide, document macro, environmental detail, restrained timeline]
+  captions: minimal source-aware captions
+  cta: reflective question or none
+resources:
+  preferred: [official_capture, wikimedia, openverse, account_library, pexels, pixabay, archive_media, freesound]
+  approval_for_unknown_license: true
+  audio: [documentary_bed, room_tone, historical_ambience, low_impact]
+capabilities:
+  required: [research, factual_verification, chronology, evidence_cards, stock_image_search, audio_ducking]
+  optional: [archive_search, stock_video_search, remotion, otio_export, sfx_search]
+quality:
+  hard_fail: [unsafe_media, incompatible_license, unverified_high_risk_claim, corrupt_render]
+  repair: [weak_chronology, generic_broll, missing_attribution, excessive_motion, poor_source_balance]
+preview:
+  cover: preview/cover.webp
+  video: preview/preview.mp4
+  estimated_minutes: 10
+  estimated_cost_usd: 0
+  difficulty: advanced
