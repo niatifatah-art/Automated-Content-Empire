@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any, Callable
 
 from ace.graphics import create_card
+from ace.creative import choose_meme_beat
+from ace.memes import generate as generate_meme
 from ace.http import request
 from ace.media_fingerprint import fingerprint_bundle
 from ace.resources import Resource, find as find_resources
@@ -183,12 +185,45 @@ def generated_concept_candidate(folder: Path, intent: ShotIntent, workspace: str
     )
 
 
+def meme_candidate(folder: Path, intent: ShotIntent, *, mode: str = "auto") -> VisualCandidate | None:
+    beat = choose_meme_beat(intent, mode=mode)
+    if not beat.allowed:
+        return None
+    resource = generate_meme(folder, setup=beat.setup, punchline=beat.punchline)
+    candidate = from_resource(resource, intent, VisualFormat.MEME.value)
+    candidate.provider = "ace_meme"
+    candidate.origin = CandidateOrigin.ACE_GENERATED.value
+    candidate.approval_required = False
+    candidate.width = 1080
+    candidate.height = 1920
+    candidate.semantic_elements = [*intent.required_elements, "reaction", "punchline"]
+    candidate.tags = [*candidate.tags, "ace_original", "reaction", intent.mood]
+    candidate.metadata.update({"meme_beat": beat.to_dict(), "used_as_evidence": False})
+    return candidate
+
+
+
+def _typography_title(intent: ShotIntent) -> str:
+    """Create a concise on-screen idea without repeating a subtitle paragraph."""
+    text = " ".join(intent.narration.strip().split())
+    words = text.rstrip(" .!?").split()
+    if len(words) <= 9:
+        return " ".join(words)
+    if intent.purpose == "call_to_action":
+        # The last clause usually contains the payoff/action. Keep enough context
+        # for it to stand alone while remaining readable on a phone.
+        return " ".join(words[-7:])
+    if intent.purpose == "hook":
+        return " ".join(words[:8]) + "…"
+    subject = intent.subject.replace("_", " " ).strip()
+    return subject.title() if subject else " ".join(words[:8]) + "…"
+
 def typography_candidate(folder: Path, intent: ShotIntent, *, label: str = "KEY IDEA") -> VisualCandidate:
     root = ensure_dir(folder / "visuals" / "generated" / "typography")
     path = root / f"{intent.shot_id}-{slugify(intent.subject, 38)}.png"
     create_card(
         path,
-        title=intent.narration,
+        title=_typography_title(intent),
         label=label,
         footer="ACE ORIGINAL VISUAL",
         size=(720, 1280),
@@ -229,7 +264,7 @@ def stock_candidates(
         queries = intent.search_queries.get(visual_format, [])
         if not queries:
             queries = intent.search_queries.get(VisualFormat.ACCOUNT_ASSET.value, [])
-        for query in queries[:2]:
+        for query in queries[:4]:
             try:
                 resources = finder(query, media_type=media_type, workspace=workspace, limit=limit_per_query)
             except Exception:

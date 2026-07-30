@@ -34,12 +34,14 @@ class ProviderFailure(RuntimeError):
         retryable: bool = False,
         status: int | None = None,
         retry_after: float | None = None,
+        details: str | None = None,
     ):
         super().__init__(message)
         self.category = category
         self.retryable = retryable
         self.status = status
         self.retry_after = retry_after
+        self.details = details
 
 
 class TextProvider(Protocol):

@@ -414,6 +414,160 @@ def _browser_https_frame(intent: ShotIntent, size: tuple[int, int], progress: fl
     return image
 
 
+
+
+def _dns_route_frame(intent: ShotIntent, size: tuple[int, int], progress: float) -> Image.Image:
+    """Diagram DNS resolution as a route, distinct from the browser UI demo."""
+    image, draw = _canvas(size)
+    width, height = size
+    _header(draw, size, intent, "DNS ROUTE")
+    nodes = [
+        (width * 0.18, height * 0.42, "DOMAIN", ACCENT),
+        (width * 0.50, height * 0.30, "RESOLVER", GOLD),
+        (width * 0.82, height * 0.42, "DNS SERVER", ACCENT_2),
+        (width * 0.50, height * 0.66, "IP ADDRESS", ACCENT_2),
+    ]
+    for x, y, label, color in nodes:
+        draw.rounded_rectangle((x - 105, y - 58, x + 105, y + 58), radius=22, fill=PANEL, outline=color, width=5)
+        _center_text(draw, (x, y), label, fill=color, font=_font(23, bold=True))
+    routes = [
+        ((width * 0.285, height * 0.42), (width * 0.405, height * 0.32), "NAME?"),
+        ((width * 0.595, height * 0.32), (width * 0.715, height * 0.42), "LOOKUP"),
+        ((width * 0.78, height * 0.49), (width * 0.58, height * 0.62), "IP"),
+        ((width * 0.42, height * 0.62), (width * 0.22, height * 0.49), "ANSWER"),
+    ]
+    for index, (start, end, label) in enumerate(routes):
+        _line(draw, start, end, color=(66, 129, 148), width=5)
+        local = (progress * 1.45 - index * 0.22) % 1.0
+        _packet(draw, _interpolate(start, end, local), protected=True, label=label)
+    draw.rounded_rectangle((width * 0.20, height * 0.78, width * 0.80, height * 0.87), radius=22, fill=(10, 56, 71), outline=ACCENT_2, width=3)
+    _center_text(draw, (width / 2, height * 0.825), "example.com  →  93.184.216.34", fill=TEXT, font=_font(29, bold=True))
+    _footer(draw, size, intent)
+    return image
+
+def _browser_dns_frame(intent: ShotIntent, size: tuple[int, int], progress: float) -> Image.Image:
+    """Show a URL becoming an IP address before the browser contacts a server."""
+    image, draw = _canvas(size)
+    width, height = size
+    _header(draw, size, intent, "DNS LOOKUP")
+
+    x1, y1, x2, y2 = 48, 225, width - 48, 945
+    draw.rounded_rectangle((x1, y1, x2, y2), radius=28, fill=(245, 248, 250), outline=(64, 97, 111), width=4)
+    draw.rounded_rectangle((x1, y1, x2, y1 + 82), radius=26, fill=(25, 42, 52))
+    for index, color in enumerate((WARNING, GOLD, ACCENT_2)):
+        draw.ellipse((x1 + 25 + index * 34, y1 + 28, x1 + 43 + index * 34, y1 + 46), fill=color)
+    address_x1, address_x2 = x1 + 122, x2 - 25
+    draw.rounded_rectangle((address_x1, y1 + 18, address_x2, y1 + 64), radius=18, fill=(236, 242, 245))
+    visible = "example.com"[: max(1, int(len("example.com") * min(1.0, progress * 1.8)))]
+    draw.text((address_x1 + 25, y1 + 27), visible, fill=(17, 57, 70), font=_font(22, bold=True))
+
+    browser = (width * 0.20, height * 0.48)
+    resolver = (width * 0.50, height * 0.42)
+    server = (width * 0.80, height * 0.48)
+    nodes = [
+        (browser, "BROWSER", ACCENT),
+        (resolver, "DNS", GOLD),
+        (server, "SERVER", ACCENT_2),
+    ]
+    for (x, y), label, color in nodes:
+        draw.rounded_rectangle((x - 105, y - 58, x + 105, y + 58), radius=22, fill=PANEL, outline=color, width=5)
+        _center_text(draw, (x, y), label, fill=color, font=_font(26, bold=True))
+
+    first_start = (browser[0] + 110, browser[1])
+    first_end = (resolver[0] - 110, resolver[1])
+    second_start = (resolver[0] + 110, resolver[1])
+    second_end = (server[0] - 110, server[1])
+    _line(draw, first_start, first_end, color=(73, 132, 151), width=5)
+    _line(draw, second_start, second_end, color=(73, 132, 151), width=5)
+
+    if progress < 0.5:
+        t = min(1.0, progress * 2)
+        _packet(draw, _interpolate(first_start, first_end, t), protected=True, label="NAME?")
+        _center_text(draw, (width / 2, height * 0.62), "WHERE DOES EXAMPLE.COM LIVE?", fill=GOLD, font=_font(28, bold=True))
+    else:
+        t = min(1.0, (progress - 0.5) * 2)
+        _packet(draw, _interpolate(second_start, second_end, t), protected=True, label="IP")
+        _center_text(draw, (width / 2, height * 0.62), "DNS RETURNS AN IP ADDRESS", fill=ACCENT_2, font=_font(29, bold=True))
+
+    draw.rounded_rectangle((width * 0.25, height * 0.70, width * 0.75, height * 0.79), radius=22, fill=(10, 56, 71), outline=ACCENT_2, width=3)
+    _center_text(draw, (width / 2, height * 0.745), "93.184.216.34", fill=TEXT, font=_font(34, bold=True))
+    _footer(draw, size, intent)
+    return image
+
+
+def _browser_request_frame(intent: ShotIntent, size: tuple[int, int], progress: float) -> Image.Image:
+    """Generic browser request/response demo without pretending every browser shot is HTTPS."""
+    image, draw = _canvas(size)
+    width, height = size
+    _header(draw, size, intent, "BROWSER REQUEST")
+    x1, y1, x2, y2 = 52, 225, width - 52, 920
+    draw.rounded_rectangle((x1, y1, x2, y2), radius=28, fill=(245, 248, 250), outline=(64, 97, 111), width=4)
+    draw.rounded_rectangle((x1, y1, x2, y1 + 82), radius=26, fill=(25, 42, 52))
+    address_x1, address_x2 = x1 + 105, x2 - 28
+    draw.rounded_rectangle((address_x1, y1 + 18, address_x2, y1 + 64), radius=18, fill=(236, 242, 245))
+    draw.text((address_x1 + 24, y1 + 27), "example.com", fill=(17, 57, 70), font=_font(22, bold=True))
+
+    browser = (width * 0.23, height * 0.49)
+    server = (width * 0.77, height * 0.49)
+    for point, label, color in ((browser, "BROWSER", ACCENT), (server, "WEB SERVER", ACCENT_2)):
+        draw.rounded_rectangle((point[0] - 130, point[1] - 72, point[0] + 130, point[1] + 72), radius=24, fill=PANEL, outline=color, width=5)
+        _center_text(draw, point, label, fill=color, font=_font(25, bold=True))
+    _line(draw, (browser[0] + 135, browser[1] - 28), (server[0] - 135, server[1] - 28), color=(72, 132, 151), width=5)
+    _line(draw, (server[0] - 135, server[1] + 28), (browser[0] + 135, browser[1] + 28), color=(72, 132, 151), width=5)
+    if progress < 0.5:
+        _packet(draw, _interpolate((browser[0] + 135, browser[1] - 28), (server[0] - 135, server[1] - 28), progress * 2), protected=True, label="GET")
+        label = "REQUEST THE PAGE"
+    else:
+        _packet(draw, _interpolate((server[0] - 135, server[1] + 28), (browser[0] + 135, browser[1] + 28), (progress - 0.5) * 2), protected=True, label="HTML")
+        label = "RETURN THE WEBPAGE"
+    _center_text(draw, (width / 2, height * 0.66), label, fill=ACCENT_2 if progress >= 0.5 else GOLD, font=_font(30, bold=True))
+
+    page_top = height * 0.72
+    draw.rounded_rectangle((width * 0.18, page_top, width * 0.82, page_top + 165), radius=20, fill=(237, 242, 245))
+    draw.rounded_rectangle((width * 0.22, page_top + 25, width * 0.60, page_top + 48), radius=8, fill=(52, 94, 111))
+    for index in range(3):
+        draw.rounded_rectangle((width * 0.22, page_top + 75 + index * 26, width * (0.72 - index * 0.05), page_top + 88 + index * 26), radius=6, fill=(121, 151, 163))
+    _footer(draw, size, intent)
+    return image
+
+
+def _generic_application_frame(intent: ShotIntent, size: tuple[int, int], progress: float) -> Image.Image:
+    """Neutral application UI demo for settings/actions that are not phone-hotspot specific."""
+    image, draw = _canvas(size)
+    width, height = size
+    _header(draw, size, intent, "APPLICATION DEMO")
+    x1, y1, x2, y2 = 58, 220, width - 58, 940
+    draw.rounded_rectangle((x1, y1, x2, y2), radius=28, fill=(239, 244, 247), outline=(68, 102, 116), width=4)
+    draw.rounded_rectangle((x1, y1, x2, y1 + 76), radius=26, fill=(26, 44, 54))
+    draw.text((x1 + 32, y1 + 25), "SETTINGS", fill=TEXT, font=_font(25, bold=True))
+
+    sidebar_x2 = x1 + 180
+    draw.rectangle((x1, y1 + 76, sidebar_x2, y2), fill=(218, 228, 233))
+    sections = ["GENERAL", "NETWORK", "PRIVACY", "ADVANCED"]
+    selected_index = min(len(sections) - 1, int(progress * len(sections)))
+    for index, label in enumerate(sections):
+        sy = y1 + 130 + index * 90
+        active = index == selected_index
+        if active:
+            draw.rounded_rectangle((x1 + 18, sy - 20, sidebar_x2 - 18, sy + 42), radius=14, fill=(177, 224, 231))
+        draw.text((x1 + 35, sy), label, fill=(18, 65, 80) if active else (76, 104, 116), font=_font(21, bold=True))
+
+    content_x1 = sidebar_x2 + 35
+    _center_text(draw, ((content_x1 + x2) / 2, y1 + 155), sections[selected_index], fill=(23, 73, 90), font=_font(32, bold=True))
+    for index in range(3):
+        row_y = y1 + 245 + index * 145
+        draw.rounded_rectangle((content_x1, row_y, x2 - 35, row_y + 105), radius=20, fill=(250, 252, 253), outline=(176, 196, 205), width=3)
+        draw.rounded_rectangle((content_x1 + 24, row_y + 25, content_x1 + 230, row_y + 44), radius=7, fill=(88, 125, 139))
+        draw.rounded_rectangle((content_x1 + 24, row_y + 61, content_x1 + 330, row_y + 75), radius=6, fill=(181, 197, 204))
+        toggle_x = x2 - 95
+        enabled = progress >= (index + 1) / 4
+        draw.rounded_rectangle((toggle_x - 44, row_y + 31, toggle_x + 44, row_y + 73), radius=21, fill=ACCENT_2 if enabled else (129, 148, 157))
+        knob_x = toggle_x + 22 if enabled else toggle_x - 22
+        draw.ellipse((knob_x - 16, row_y + 36, knob_x + 16, row_y + 68), fill=TEXT)
+    _footer(draw, size, intent)
+    return image
+
+
 def _code_logic_frame(intent: ShotIntent, size: tuple[int, int], progress: float) -> Image.Image:
     image, draw = _canvas(size)
     width, height = size
@@ -506,16 +660,43 @@ FrameFactory = Callable[[ShotIntent, tuple[int, int], float], Image.Image]
 
 def _frame_factory(intent: ShotIntent, visual_format: str | None = None) -> tuple[FrameFactory, list[str], str, str]:
     subject = intent.subject.lower()
+    narration = intent.narration.lower()
     required = {value.lower() for value in intent.required_elements}
-    preferred = set(intent.preferred_formats)
     requested = visual_format or (intent.preferred_formats[0] if intent.preferred_formats else VisualFormat.ANIMATED_EXPLAINER.value)
 
     if requested == VisualFormat.TERMINAL_DEMO.value or "terminal" in required or "exact_command" in required:
         return _terminal_frame, ["terminal", "exact_command", "visible_result"], "A readable terminal demonstration shows the exact action and result.", VisualFormat.TERMINAL_DEMO.value
-    if "phone_personal_hotspot" in subject or "hotspot_settings" in required:
+
+    # Application demos must be capability-specific. Never reuse the phone-hotspot
+    # template merely because an intent asks for a visible interface action.
+    if "phone_personal_hotspot" in subject or "hotspot_settings" in required or "personal hotspot" in narration:
         return _phone_hotspot_frame, ["smartphone", "hotspot_settings", "connected_device"], "A literal phone settings view demonstrates Personal Hotspot instead of generic Wi-Fi footage.", VisualFormat.APPLICATION_DEMO.value
-    if requested == VisualFormat.BROWSER_DEMO.value or "https" in subject or "browser" in required:
-        return _browser_https_frame, ["browser_address_bar", "https_state", "protected_connection"], "A controlled browser view shows the actual HTTPS protection state.", VisualFormat.BROWSER_DEMO.value
+
+    # Browser demos are also capability-specific. DNS, generic requests and HTTPS
+    # have different visual meanings and should never collapse into one template.
+    dns_signal = "dns" in subject or "dns" in narration or "domain" in subject or "ip_address" in required or "address_bar" in required
+    unencrypted_signal = any(term in subject or term in narration for term in ("unencrypted", "without encryption", "lacks encryption", "exposed traffic"))
+    secure_signal = (
+        not unencrypted_signal
+        and (any(term in subject or term in narration for term in ("https", "tls", "encrypted", "secure connection", "browser security")) or "https_state" in required)
+    )
+    if requested == VisualFormat.BROWSER_DEMO.value:
+        if dns_signal:
+            return _browser_dns_frame, ["browser_address_bar", "dns_resolver", "domain_name", "ip_address"], "A browser-to-DNS-to-server flow shows how a domain becomes a routable IP address.", VisualFormat.BROWSER_DEMO.value
+        if secure_signal:
+            return _browser_https_frame, ["browser_address_bar", "https_state", "protected_connection"], "A controlled browser view shows the actual HTTPS protection state.", VisualFormat.BROWSER_DEMO.value
+        return _browser_request_frame, ["browser_address_bar", "server_request", "server_response", "returned_page"], "A browser request-and-response view demonstrates the page loading sequence.", VisualFormat.BROWSER_DEMO.value
+
+    # The same concept should have a genuinely different explainer candidate,
+    # not the browser template relabeled as an animation. This creates useful
+    # diversity for the candidate tournament and avoids six identical UI shots.
+    if dns_signal:
+        return _dns_route_frame, ["domain_name", "dns_resolver", "authoritative_dns", "ip_address"], "A routed DNS diagram explains the lookup independently from the browser interface.", VisualFormat.ANIMATED_EXPLAINER.value
+    if secure_signal:
+        return lambda i, s, p: _network_frame(i, s, p, protected=True), ["data_packets", "encryption_lock", "protected_connection"], "An encrypted packet-flow diagram explains TLS protection without repeating the browser UI.", VisualFormat.ANIMATED_EXPLAINER.value
+    if any(term in subject or term in narration for term in ("browser_request", "server_request", "server_response", "returned_page", "page files", "page loads", "renders the website")):
+        return _software_flow_frame, ["browser", "server_request", "server_response", "returned_page"], "A request-and-response flow explains how the browser receives page files.", VisualFormat.ANIMATED_EXPLAINER.value
+
     if "rogue" in subject or ("fake" in subject and "wifi" in subject):
         return _rogue_hotspot_frame, ["two_similar_wifi_names", "trusted_network", "fake_network", "attacker_control"], "Trusted and lookalike Wi-Fi networks are contrasted directly.", VisualFormat.ANIMATED_EXPLAINER.value
     if "vpn" in subject or "tunnel" in subject:
@@ -540,8 +721,8 @@ def _frame_factory(intent: ShotIntent, visual_format: str | None = None) -> tupl
         return lambda i, s, p: _network_frame(i, s, p, protected=True), ["shared_access_point", "multiple_devices", "data_packets", "encryption_lock"], "Protected packets and a closed lock explain encryption.", VisualFormat.ANIMATED_EXPLAINER.value
     if "wifi" in subject or "network" in subject or "router" in subject:
         return lambda i, s, p: _network_frame(i, s, p, protected="encrypted" in subject), ["wireless_router", "multiple_devices", "shared_network"], "A literal topology shows the network and its connected devices.", VisualFormat.ANIMATED_EXPLAINER.value
-    if requested == VisualFormat.APPLICATION_DEMO.value and ("interface" in required or "visible_action" in required):
-        return _phone_hotspot_frame, list(intent.required_elements), "A controlled UI-style demonstration shows the requested action.", VisualFormat.APPLICATION_DEMO.value
+    if requested == VisualFormat.APPLICATION_DEMO.value:
+        return _generic_application_frame, list(intent.required_elements) or ["relevant_interface", "visible_action"], "A neutral application UI demonstrates the requested action without inventing a product-specific screen.", VisualFormat.APPLICATION_DEMO.value
     return _generic_frame, list(intent.required_elements), "ACE generated a subject-specific motion graphic rather than unrelated stock filler.", VisualFormat.ANIMATED_EXPLAINER.value
 
 

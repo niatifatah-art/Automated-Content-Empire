@@ -1,63 +1,145 @@
-# Automated Content Empire — ACE v2.0.2
+# Automated Content Empire — ACE v2.1.0
 
-ACE is a cloud-first, evidence-aware content production system for YouTube, TikTok, Instagram, Facebook, X, and LinkedIn. It researches a topic, writes and reviews a script, maps important claims to sources, produces narration, plans shot-specific visuals, directs captions adaptively, and renders a validated video with FFmpeg.
+ACE is a cloud-first, evidence-aware content production system for short-form and long-form social video. It researches, writes, verifies, narrates, directs visuals and captions, builds an editing plan, and renders with FFmpeg.
 
-ACE v2 is designed around one principle: **finishing a file is not enough; the result must remain factual, visually intentional, legally traceable, and recognizable as the creator’s brand.**
+ACE v2.1 focuses on a practical goal: **the result should feel edited, not merely assembled.**
 
-## v2.0.2 Visual Intelligence
+## Start here — simplified commands
 
-ACE now plans each shot before searching for media. A narration segment becomes a structured `ShotIntent`, then several visual formats compete: official evidence, browser or terminal demonstrations, original animated explainers, charts, article/social cards, account assets, licensed stock, typography, and minimal screens.
-
-Pexels and Pixabay remain useful, but generic stock no longer wins by default. Candidates are scored for exact relevance, required objects, forbidden imagery, vertical fit, truthfulness, visual quality, style, provenance, and duplication. Local frames can also be judged by Gemini vision when configured.
-
-The built-in Original Explainer Engine covers shared Wi-Fi networks, exposed/encrypted packets, rogue hotspots, VPN tunnels, passkey flows, browser HTTPS, terminal commands, phone-hotspot settings, code logic, software routing, company partnerships, timelines, challenges, and comparisons. Caption phrases are grouped into idea-level shots, then repositioned after visual selection so important diagram and UI regions remain readable. Every selected visual stores its candidate set, scores, reason, license state, fingerprints, and replacement history.
+Create a complete YouTube Short:
 
 ```bash
-ace visuals benchmark
+ace make "What really happens when you type a URL"
+```
+
+Choose the creative direction without remembering the old command tree:
+
+```bash
+ace make "Linux mistakes beginners keep making" \
+  --look fun \
+  --footage broll \
+  --humor auto \
+  --mode best
+```
+
+Review, repair and open the result:
+
+```bash
+ace review
+ace redo 4
+ace open
+```
+
+Check the installation:
+
+```bash
+ace checkup --offline
+ace checkup --live
+```
+
+Friendly aliases are intentionally small:
+
+```text
+make     create a complete video
+review   score the latest result
+redo 4   rebuild one weak shot
+open     play the finished video
+checkup  diagnose the installation
+```
+
+The advanced command tree remains supported for inspection and precise repairs. The former flags `--style`, `--media`, `--memes`, `--quality`, and `--reference` remain compatibility aliases for `--look`, `--footage`, `--humor`, `--mode`, and `--ref`.
+
+## v2.1 Creative Editing Engine
+
+### B-Roll Director
+
+ACE no longer repeats one broad stock query for a whole sentence. It produces distinct searches for:
+
+- the literal action
+- the important object or screen
+- close-up detail
+- over-the-shoulder context
+- the real environment
+- an optional documentary establishing shot
+
+Abstract mechanisms still prioritize explainers or controlled demonstrations. Literal scenes can favor strong account-owned or licensed B-roll with `--footage broll`. `--footage original` disables stock retrieval while retaining original explainers, evidence and typography.
+
+### Meme Director
+
+Memes are now connected to the automatic candidate tournament. ACE creates an original reaction card only when it detects a natural comedy beat and the style permits humor. Serious incidents, evidence and precise data suppress memes automatically.
+
+```bash
+--humor auto   # default: only natural, appropriate beats
+--humor off    # never use memes
+--humor on     # look harder for a genuine punchline; never force one
+```
+
+### Editing grammar
+
+Every shot receives an explicit creative directive for motion, transition, overlay, emphasis and source-window selection. The renderer now supports:
+
+- punch-ins, slow pushes and directional pans
+- style-aware contrast and finishing
+- scene-boundary-aware B-roll trimming
+- optional secondary visual overlays
+- hard cuts and brief soft entrances instead of repeated fade-to-black dips
+- different editing behavior for technical, documentary, gaming, challenge, serious and playful content
+
+### Reference pacing
+
+Use a reference video to borrow its average cut rhythm without copying its content:
+
+```bash
+ace make "Your topic" --ref ~/Videos/reference.mp4
+```
+
+ACE analyzes orientation, cut count and average shot duration, then uses those timing hints when grouping narration into visual beats.
+
+### Creative quality report
+
+`ace review` now reports:
+
+- real B-roll coverage from stock/account footage
+- dynamic visual coverage from demos, explainers and footage
+- static-card ratio
+- repeated-format runs
+- motion and transition variety
+- meme count versus the selected style budget
+- average shot duration
+
+This report warns when a video resembles a slideshow even if the technical render is valid.
+
+### Better Gemini quota handling
+
+ACE distinguishes a short rate limit from a per-day Gemini quota. A daily quota places only that credential/model route into a reset-length cooldown, allows other configured cloud routes to continue, and displays a concise error instead of the complete provider JSON.
+
+The friendly quality modes also control cloud request budgets:
+
+```text
+quick      deterministic visual planning; minimum cloud calls
+balanced   one targeted cloud intent refinement; no routine frame judge
+best       targeted cloud refinement and judging for the most important shots
+```
+
+ACE does not spend a cloud request on every subtitle chunk. It groups narration into visual beats and reserves cloud judgment for the shots where it can change the result.
+
+## Visual Intelligence foundation retained
+
+ACE still uses structured `ShotIntent`, `VisualCandidate`, `VisualScore` and `VisualDecision` records. Official evidence, browser/terminal demonstrations, original explainers, generated concepts, article/social cards, account assets, licensed stock, memes, typography and minimal screens can all compete. Every selection retains source, license, score, reason, fingerprints and replacement history.
+
+Useful advanced inspection commands:
+
+```bash
 ace visuals explain last --shot 4
 ace visuals candidates last --shot 4
 ace visuals regenerate last --shot 4
 ace visuals replace last --shot 4 --candidate CANDIDATE_ID
-ace rerun last --from visual-plan
 ace state show last
 ```
 
-A generation now also maintains a SQLite event/state database so stages, attempts, failures, approvals, and repairs survive crashes and remain inspectable. Provider calls emit structured trace events, while image/video fingerprints help reject exact and perceptual duplicates.
+## Honest scope
 
-Reproduce the offline public-Wi-Fi visual regression:
-
-```bash
-PYTHONPATH=src python scripts/public_wifi_regression.py \
-  --copy-output ./public-wifi-regression.mp4 \
-  --report ./public-wifi-regression.json
-```
-
-## v2.0.1 reliability fixes
-
-- Existing v1/v2 accounts are automatically migrated with the adaptive `editing` block.
-- Gemini quota cooldowns are tracked per credential **and model**, so a 3.6 Flash limit does not block 3.5 Flash or Flash-Lite.
-- Cloud fallback order now tries the backup Gemini credential, then other Gemini cloud models, before any local degraded route.
-- Gemini 3.5/3.6 requests no longer send deprecated sampling parameters.
-- Credential tests use enough output budget for thinking-enabled models.
-- Empty caption, visual, and edit inspections report `not_run` instead of a false `passed`.
-- Failed early generations preserve and report the real research-source count.
-
-
-## What changed in v2
-
-- Cloud-quality models are primary for research, writing, verification, creative direction, and quality control.
-- Two authorized Gemini credentials can be configured as primary and backup.
-- Local Ollama models are no longer silently treated as equivalent to cloud models; they require explicit degraded-mode consent for quality-sensitive work.
-- Research sources, claims, contradictions, article evidence, social reactions, reusable media, and generated visuals are stored separately.
-- Official webpages can be captured as evidence; nonofficial screenshots require approval.
-- Social posts may improve the story, but opinions and viral reactions never become factual proof by themselves.
-- The Caption Director chooses between no visible caption, short phrase, keyword, full title, source headline, code panel, statistic, challenge counter, or call to action.
-- Caption text is dynamically fitted into safe areas with a two-line limit and overflow validation.
-- The Visual Director creates a semantic search query per shot, ranks stock media, preserves vertical framing, and generates an original fallback instead of using black frames.
-- Existing and generated memes are supported with tone checks, attribution metadata, and approval requirements for internet material.
-- Narration is normalized, optionally mixed with licensed music, and checked for silence.
-- Completion logic correctly accepts high-scoring noncritical warnings as `COMPLETE_WITH_WARNINGS`.
-- Publishing remains approval-gated: ACE may prepare and schedule a package, but never publishes automatically.
+ACE v2.1 is an automated creative editor, not a replacement for a full nonlinear editor. High-quality live B-roll depends on the available provider inventory and on actual frame-level matches; `best` mode stops rather than quietly accepting a low creative score. It does not claim human-level motion tracking, hand-crafted compositing or guaranteed viral performance. Cloud frame judging, live resource search and official-page capture require configured credentials and network access. The deterministic route remains usable offline and fails safely when an external service is unavailable.
 
 ## Install on Linux Mint / Ubuntu
 
@@ -71,8 +153,8 @@ sudo apt install -y python3-venv ffmpeg libsndfile1 espeak-ng fonts-dejavu-core
 Create a clean environment:
 
 ```bash
-unzip Automated-Content-Empire-2.0.2.zip
-cd Automated-Content-Empire-2.0.2
+unzip Automated-Content-Empire-2.1.0.zip
+cd Automated-Content-Empire-2.1.0
 
 python3 -m venv .venv
 source .venv/bin/activate
@@ -113,7 +195,7 @@ Activate the venv in which the old `ace` command is installed, then install v2:
 
 ```bash
 source /path/to/your/old/project/.venv/bin/activate
-cd Automated-Content-Empire-2.0.2
+cd Automated-Content-Empire-2.1.0
 python -m pip install --upgrade pip setuptools wheel
 python -m pip install -e ".[voice]"
 ace init --upgrade
@@ -433,7 +515,7 @@ ace publish schedule last "2026-08-01T18:00:00+01:00"
 ace publish status last
 ```
 
-These commands create a publishing plan. They do not post to social platforms in v2.0.1.
+These commands create approval records and a publishing plan. ACE v2.1 does not post directly to social platforms.
 
 ## Diagnostics and repair
 

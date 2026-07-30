@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
 from ace.captions import CaptionCue, adapt_to_visuals, plan as plan_captions
+from ace.creative import build_broll_queries, edit_directive, profile_for
 from ace.config import load as load_config
 from ace.storage import metadata, resolve_generation, update_metadata
 from ace.utils import read_json, write_json
-from ace.visual_intelligence.contracts import ShotIntent, VisualFormat
+from ace.visual_intelligence.contracts import ShotIntent, VisualCandidate, VisualFormat, VisualScore
 from ace.visual_intelligence.intent import IntentPlanner
 from ace.visual_intelligence.tournament import load_intents, run_tournament, validate as validate_intelligence
 
@@ -63,12 +65,12 @@ def _purpose(index: int, total: int, cue: CaptionCue) -> str:
     return "support"
 
 
-def _shot_target(config: dict[str, Any], mood: str) -> tuple[float, float, float]:
+def _shot_target(config: dict[str, Any], mood: str, target_override: float | None = None) -> tuple[float, float, float]:
     editing = config.get("editing", {})
     style = editing.get("styles", {}).get(mood, {})
     pace = str(style.get("pace") or "medium")
     target_by_pace = {"very_fast": 1.9, "fast": 2.3, "medium": 2.8, "controlled": 3.2}
-    target = float(target_by_pace.get(pace, editing.get("average_shot_seconds", 2.6)))
+    target = float(target_override or target_by_pace.get(pace, editing.get("average_shot_seconds", 2.6)))
     minimum = float(editing.get("minimum_shot_seconds", 1.4))
     maximum = float(editing.get("maximum_shot_seconds", 4.2))
     return target, minimum, maximum
@@ -85,7 +87,7 @@ def _cue_boundary(cue: CaptionCue) -> str:
     return "normal"
 
 
-def _group_cues(cues: list[CaptionCue], mood: str, config: dict[str, Any]) -> list[list[CaptionCue]]:
+def _group_cues(cues: list[CaptionCue], mood: str, config: dict[str, Any], *, target_override: float | None = None) -> list[list[CaptionCue]]:
     """Group caption phrases by narrated idea, not by subtitle timing.
 
     Caption chunks can change every second while the visual should normally stay
@@ -94,8 +96,12 @@ def _group_cues(cues: list[CaptionCue], mood: str, config: dict[str, Any]) -> li
     was split into three readable phrases.
     """
 
-    target, minimum, maximum = _shot_target(config, mood)
-    sentence_maximum = max(maximum, float(config.get("editing", {}).get("maximum_sentence_shot_seconds", 8.0)))
+    target, minimum, maximum = _shot_target(config, mood, target_override)
+    configured_sentence_max = float(config.get("editing", {}).get("maximum_sentence_shot_seconds", 7.2))
+    # Keep a complete spoken idea together whenever possible. Fast captions can
+    # change inside one shot; changing the visual for every caption fragment
+    # creates repetitive templates. Only genuinely long sentences are split.
+    sentence_maximum = max(maximum, min(configured_sentence_max, max(6.0, target * 2.5)))
     groups: list[list[CaptionCue]] = []
     current: list[CaptionCue] = []
     current_sentence: int | None = None
@@ -164,12 +170,15 @@ def plan(
     folder = resolve_generation(generation, workspace)
     info = metadata(folder)
     topic = str(info.get("topic") or "")
+    creative_style = str(info.get("creative_style") or "adaptive")
+    media_mode = str(info.get("media_mode") or "auto")
+    meme_mode = str(info.get("meme_mode") or "auto")
     script_path = folder / "script" / "tts-ready.txt"
     if not script_path.exists():
         script_path = folder / "selected.md"
     script = script_path.read_text(encoding="utf-8")
-    mood = choose_mood(topic, script)
-    update_metadata(folder, editing_mood=mood, visual_intelligence_version=1)
+    mood = creative_style if creative_style not in {"", "adaptive"} else choose_mood(topic, script)
+    update_metadata(folder, editing_mood=mood, visual_intelligence_version=2)
     cue_rows = read_json(folder / "captions" / "caption-plan.json", [])
     if refresh_captions or not cue_rows:
         cues = plan_captions(folder, workspace, mood=mood)
@@ -179,10 +188,16 @@ def plan(
     style = config.get("editing", {}).get("styles", {}).get(mood, {})
     transition = str(style.get("transition") or "quick_fade")
     settings = config.get("visual_intelligence", {})
-    if cloud_intents is None:
-        cloud_intents = bool(settings.get("cloud_intent_planner", True))
-    planner = IntentPlanner(str(workspace) if workspace is not None else None, allow_cloud=cloud_intents)
-    groups = _group_cues(cues, mood, config)
+    quality_mode = str(info.get("quality_mode") or "balanced")
+    cloud_enabled = bool(settings.get("cloud_intent_planner", True)) if cloud_intents is None else bool(cloud_intents)
+    intent_budgets = settings.get("cloud_intent_budget_by_quality", {"quick": 0, "balanced": 1, "best": 2})
+    intent_budget = int(intent_budgets.get(quality_mode, 1)) if cloud_enabled else 0
+    baseline_planner = IntentPlanner(str(workspace) if workspace is not None else None, allow_cloud=False)
+    cloud_planner = IntentPlanner(str(workspace) if workspace is not None else None, allow_cloud=True)
+    cloud_intents_used = 0
+    reference_style = info.get("reference_style") or {}
+    reference_target = float(reference_style.get("average_shot_seconds") or 0) or None
+    groups = _group_cues(cues, mood, config, target_override=reference_target)
     shots: list[Shot] = []
     intents: list[ShotIntent] = []
     for shot_index, group in enumerate(groups, 1):
@@ -192,7 +207,7 @@ def plan(
         representative = visible_cues[0] if visible_cues else first
         purpose = _purpose(shot_index, len(groups), representative)
         shot_id = f"shot-{shot_index:03d}"
-        intent = planner.plan(
+        intent = baseline_planner.plan(
             narration,
             shot_id=shot_id,
             purpose=purpose,
@@ -200,7 +215,31 @@ def plan(
             topic=topic,
             caption_strategy=representative.mode,
         )
+        should_refine = (
+            cloud_intents_used < intent_budget
+            and (intent.evidence_required or intent.importance >= 0.86 or purpose == "hook")
+        )
+        if should_refine:
+            refined = cloud_planner.plan(
+                narration,
+                shot_id=shot_id,
+                purpose=purpose,
+                mood=mood,
+                topic=topic,
+                caption_strategy=representative.mode,
+            )
+            if refined.metadata.get("planner") == "cloud_refined":
+                intent = refined
+                cloud_intents_used += 1
+        if meme_mode == "off":
+            intent.preferred_formats = [item for item in intent.preferred_formats if item != VisualFormat.MEME.value]
+        elif meme_mode == "on" and intent.humor_allowed and VisualFormat.MEME.value not in intent.preferred_formats:
+            intent.preferred_formats.insert(min(2, len(intent.preferred_formats)), VisualFormat.MEME.value)
+        if media_mode == "broll" and intent.literalness == "literal" and VisualFormat.STOCK_VIDEO.value not in intent.preferred_formats:
+            intent.preferred_formats.insert(0, VisualFormat.STOCK_VIDEO.value)
+        intent.search_queries[VisualFormat.STOCK_VIDEO.value] = [item.query for item in build_broll_queries(intent)]
         intents.append(intent)
+        directive = edit_directive(intent, shot_index, style=mood)
         queries = [query for values in intent.search_queries.values() for query in values]
         search_query = queries[0] if queries else intent.subject.replace("_", " ")
         if any(cue.mode == "article_headline" for cue in group):
@@ -222,19 +261,121 @@ def plan(
                 crop_focus="face_and_device" if any(term in narration.lower() for term in ("face", "phone", "fingerprint", "person")) else "center",
                 caption_mode=caption_mode,
                 caption_position=caption_position,
-                transition=transition,
+                transition=directive.transition or transition,
                 mood=mood,
                 reason=intent.rationale,
                 metadata={
                     "shot_id": shot_id,
                     "caption_cue_indices": [cue.index for cue in group],
                     "intent": intent.to_dict(),
+                    "creative": directive.to_dict(),
+                    "broll_queries": [item.to_dict() for item in build_broll_queries(intent)],
                 },
             )
         )
     write_json(folder / "visuals" / "shot-intents.json", [item.to_dict() for item in intents])
     write_json(folder / "visuals" / "shot-plan.json", [asdict(item) for item in shots])
     return shots
+
+
+_LIVE_SECONDARY_FORMATS = {
+    VisualFormat.ACCOUNT_ASSET.value,
+    VisualFormat.STOCK_VIDEO.value,
+}
+_DEMO_SECONDARY_FORMATS = {
+    VisualFormat.BROWSER_DEMO.value,
+    VisualFormat.APPLICATION_DEMO.value,
+    VisualFormat.TERMINAL_DEMO.value,
+    VisualFormat.OFFICIAL_EVIDENCE.value,
+}
+_NEVER_SECONDARY_FORMATS = {
+    VisualFormat.KINETIC_TYPOGRAPHY.value,
+    VisualFormat.MINIMAL_SCREEN.value,
+    VisualFormat.ARTICLE_CARD.value,
+    VisualFormat.SOCIAL_POST_CARD.value,
+    VisualFormat.STOCK_IMAGE.value,
+    VisualFormat.GENERATED_CONCEPT_IMAGE.value,
+    VisualFormat.MEME.value,
+}
+
+
+def _select_secondary_visual(
+    *,
+    selected: VisualCandidate,
+    selected_score: VisualScore,
+    candidates: list[VisualCandidate],
+    scores: list[VisualScore],
+    shot: Shot,
+    intent: ShotIntent,
+) -> tuple[VisualCandidate | None, VisualScore | None, dict[str, Any]]:
+    """Choose a complementary insert, not a random second-place candidate.
+
+    A secondary visual must be strong enough to stand alone and must add a new
+    layer: literal B-roll over an explainer, or a small verified UI/evidence PIP
+    over literal footage. Text cards, memes and generated concept stills are never
+    used as PIP because they clutter the frame and duplicate captions.
+    """
+    disabled = {"mode": "none", "reason": "No complementary secondary visual passed the creative gate."}
+    if shot.duration < 2.6 or intent.purpose in {"show_evidence", "show_data", "call_to_action"}:
+        return None, None, disabled
+
+    score_map = {item.candidate_id: item for item in scores}
+    pool: list[tuple[VisualCandidate, VisualScore, float, str]] = []
+    selected_is_live = selected.format in _LIVE_SECONDARY_FORMATS
+    selected_is_demo = selected.format in _DEMO_SECONDARY_FORMATS
+
+    for candidate in candidates:
+        if candidate.candidate_id == selected.candidate_id or candidate.format == selected.format:
+            continue
+        if candidate.format in _NEVER_SECONDARY_FORMATS:
+            continue
+        if not candidate.path or not Path(candidate.path).exists():
+            continue
+        score = score_map.get(candidate.candidate_id)
+        if not score or score.decision not in {"accepted", "needs_approval"}:
+            continue
+        if score.overall < 82 or score.semantic_relevance < 78 or score.clarity < 70 or score.duplicate_risk > 25:
+            continue
+
+        presentation = "none"
+        creative_bonus = 0.0
+        if candidate.format in _LIVE_SECONDARY_FORMATS and not selected_is_live:
+            presentation = "cutaway"
+            creative_bonus = 8.0
+        elif candidate.format in _DEMO_SECONDARY_FORMATS and selected_is_live:
+            presentation = "pip"
+            creative_bonus = 5.0
+        elif candidate.format in _LIVE_SECONDARY_FORMATS and selected_is_demo:
+            presentation = "cutaway"
+            creative_bonus = 6.0
+        else:
+            continue
+
+        # Hooks should open cleanly. A live cutaway is useful only when the primary
+        # is non-live; a small PIP on a hook is usually clutter.
+        if intent.purpose == "hook" and presentation != "cutaway":
+            continue
+        if intent.purpose == "hook" and selected_is_live:
+            continue
+
+        delta = max(0.0, selected_score.overall - score.overall)
+        if delta > 14:
+            continue
+        rank = score.overall + score.semantic_relevance * 0.08 + creative_bonus - delta * 0.3
+        pool.append((candidate, score, rank, presentation))
+
+    if not pool:
+        return None, None, disabled
+    candidate, score, _, presentation = max(pool, key=lambda item: item[2])
+    insert_duration = min(1.45, max(0.72, shot.duration * (0.30 if presentation == "cutaway" else 0.42)))
+    start = min(max(0.42, shot.duration * 0.34), max(0.42, shot.duration - insert_duration - 0.25))
+    usage = {
+        "mode": presentation,
+        "start": round(start, 3),
+        "duration": round(insert_duration, 3),
+        "reason": "Adds literal context." if presentation == "cutaway" else "Adds a relevant UI/evidence detail without replacing the primary action.",
+    }
+    return candidate, score, usage
 
 
 def collect_for_plan(
@@ -244,12 +385,29 @@ def collect_for_plan(
     resource_finder: Callable[..., Any] | None = None,
     cloud_judge: bool | None = None,
     animate_explainers: bool = True,
+    generate_cloud_images: bool | None = None,
 ) -> list[Shot]:
     folder = resolve_generation(generation, workspace)
     rows = read_json(folder / "visuals" / "shot-plan.json", [])
     shots = [Shot(**row) for row in rows] if rows else plan(folder, workspace)
     intents = {intent.shot_id: intent for intent in load_intents(folder)}
     used_fingerprints: set[str] = set()
+    generation_meta = metadata(folder)
+    media_mode = str(generation_meta.get("media_mode") or "auto")
+    profile = profile_for(str(generation_meta.get("editing_mood") or generation_meta.get("creative_style") or "technical_dynamic"))
+    total_duration = sum(max(0.0, float(item.duration)) for item in shots)
+    meme_budget = max(0, min(2, math.ceil(profile.max_memes_per_minute * total_duration / 60.0)))
+    selected_memes = 0
+    quality_mode = str(generation_meta.get("quality_mode") or "balanced")
+    judge_budgets = load_config(workspace).get("visual_intelligence", {}).get(
+        "cloud_judge_shot_budget_by_quality", {"quick": 0, "balanced": 0, "best": 2}
+    )
+    judge_budget = int(judge_budgets.get(quality_mode, 0))
+    ranked_intents = sorted(intents.values(), key=lambda item: (item.evidence_required, item.importance), reverse=True)
+    cloud_judge_ids = {item.shot_id for item in ranked_intents[:judge_budget]}
+    effective_resource_finder = resource_finder
+    if effective_resource_finder is None and media_mode == "original":
+        effective_resource_finder = lambda *args, **kwargs: []
     for shot in shots:
         shot_id = str(shot.metadata.get("shot_id") or f"shot-{shot.index:03d}")
         intent = intents.get(shot_id)
@@ -262,15 +420,22 @@ def collect_for_plan(
                 topic=str(metadata(folder).get("topic") or ""),
                 caption_strategy=shot.caption_mode,
             )
+        if selected_memes >= meme_budget and VisualFormat.MEME.value in intent.preferred_formats:
+            intent.preferred_formats = [item for item in intent.preferred_formats if item != VisualFormat.MEME.value]
+            intent.metadata["meme_suppressed"] = "Generation meme budget reached."
         selected, score, decision, candidates, scores = run_tournament(
             folder,
             intent,
             duration=shot.duration,
             workspace=workspace,
             used_fingerprints=used_fingerprints,
-            resource_finder=resource_finder,
-            cloud_judge=cloud_judge,
+            resource_finder=effective_resource_finder,
+            cloud_judge=(shot_id in cloud_judge_ids) if cloud_judge is None else cloud_judge,
             animate_explainers=animate_explainers,
+            generate_cloud_images=(
+                bool(load_config(workspace).get("visual_intelligence", {}).get("automatic_cloud_images", False))
+                if generate_cloud_images is None else generate_cloud_images
+            ),
         )
         shot.resource_path = selected.path
         shot.resource_id = selected.candidate_id
@@ -278,6 +443,16 @@ def collect_for_plan(
         shot.visual_type = selected.format
         shot.reason = decision.reason
         shot.approval_required = decision.approval_required
+        if selected.format == VisualFormat.MEME.value:
+            selected_memes += 1
+        secondary, secondary_score, secondary_usage = _select_secondary_visual(
+            selected=selected,
+            selected_score=score,
+            candidates=candidates,
+            scores=scores,
+            shot=shot,
+            intent=intent,
+        )
         shot.metadata.update(
             {
                 "visual_candidate": selected.to_dict(),
@@ -285,6 +460,9 @@ def collect_for_plan(
                 "visual_decision": decision.to_dict(),
                 "candidate_count": len(candidates),
                 "candidate_scores": {item.candidate_id: item.overall for item in scores},
+                "secondary_visual": secondary.to_dict() if secondary else None,
+                "secondary_score": secondary_score.to_dict() if secondary_score else None,
+                "secondary_usage": secondary_usage,
             }
         )
     write_json(folder / "visuals" / "shot-plan.json", [asdict(item) for item in shots])

@@ -48,4 +48,4 @@ Account-owned, ACE-generated, public-domain, and appropriately licensed meme mat
 
 ## Publishing
 
-Publishing integrations are not active in v2.0.1. `prepare`, `approve`, and `schedule` create records only. The final approval requirement cannot be bypassed by Autopilot.
+Direct publishing integrations are not active in v2.1. `prepare`, `approve`, and `schedule` create records only. The final approval requirement cannot be bypassed by Autopilot.

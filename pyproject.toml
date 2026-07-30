@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ace"
-version = "2.0.2"
-description = "Automated Content Empire — evidence-aware visual-intelligence content production"
+version = "2.1.0"
+description = "Automated Content Empire — creative editing and evidence-aware content production"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Fatah Niati" }]

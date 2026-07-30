@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.1.0 — 2026-07-30
+
+### Creative Editing Engine
+
+- Added simplified `ace make`, `review`, `improve`, `play`, and `doctor` commands while retaining the advanced command set.
+- Added diverse B-roll query planning for literal action, object detail, over-the-shoulder context, environment and documentary coverage.
+- Connected original meme candidates to Autopilot with serious-topic suppression and a style-specific humor budget.
+- Added per-shot edit directives for motion, transition, overlay, emphasis, B-roll start windows and optional SFX intent.
+- Added scene-boundary-aware B-roll trimming and optional secondary visual overlays.
+- Removed repeated fade-to-black dips between every shot.
+- Added reference-video pacing analysis through `ace make --reference`.
+- Added creative quality inspection for B-roll coverage, static-card ratio, repeated formats, motion variety, transition variety and meme density.
+- Added daily Gemini quota classification and reset-length route cooldowns with concise errors.
+- Increased ACE-native candidate diversity and stock-query diversity per shot.
+
 ## 2.0.2 — 2026-07-30
 
 ### Visual Intelligence

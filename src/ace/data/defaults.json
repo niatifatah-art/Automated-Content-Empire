@@ -1,6 +1,6 @@
 {
   "schema_version": 5,
-  "version": "2.0.2",
+  "version": "2.1.0",
   "execution": {
     "cloud_first": true,
     "allow_degraded_local": false,
@@ -446,7 +446,11 @@
         "transition": "quick_fade",
         "caption_preset": "adaptive_bold"
       }
-    }
+    },
+    "avoid_black_dip_transitions": true,
+    "motion_enabled": true,
+    "shot_variation_enabled": true,
+    "maximum_sentence_shot_seconds": 7.2
   },
   "captions": {
     "adaptive": true,
@@ -542,6 +546,27 @@
       "stock_image",
       "kinetic_typography",
       "minimal_screen"
-    ]
+    ],
+    "ace_candidates_per_shot": 2,
+    "stock_queries_per_shot": 4,
+    "broll_frame_samples": 5,
+    "meme_candidate_limit": 1,
+    "creative_engine_version": 1,
+    "cloud_intent_budget_by_quality": {
+      "quick": 0,
+      "balanced": 1,
+      "best": 2
+    },
+    "cloud_judge_shot_budget_by_quality": {
+      "quick": 0,
+      "balanced": 0,
+      "best": 2
+    },
+    "cloud_judge_candidates_by_quality": {
+      "quick": 0,
+      "balanced": 1,
+      "best": 2
+    },
+    "automatic_cloud_images": false
   }
 }

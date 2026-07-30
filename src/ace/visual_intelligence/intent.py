@@ -31,15 +31,20 @@ def _subject_slug(value: str) -> str:
     return "_".join(unique[:6]) or "general_topic"
 
 
-def _queries(subject: str, narration: str, formats: list[str], required: list[str]) -> dict[str, list[str]]:
+def _queries(subject: str, narration: str, formats: list[str], required: list[str], *, intent: ShotIntent | None = None) -> dict[str, list[str]]:
     base = " ".join(subject.replace("_", " ").split())
     core = " ".join(required[:4])
     output: dict[str, list[str]] = {}
+    broll_queries: list[str] = []
+    if intent is not None:
+        from ace.creative import build_broll_queries
+
+        broll_queries = [item.query for item in build_broll_queries(intent)]
     for visual_format in formats:
         if visual_format == VisualFormat.STOCK_VIDEO.value:
-            output[visual_format] = [f"{base} real person device", f"{base} close up vertical"]
+            output[visual_format] = broll_queries or [f"{base} real action vertical video", f"{base} close up hands device"]
         elif visual_format == VisualFormat.STOCK_IMAGE.value:
-            output[visual_format] = [f"{base} photo", f"{base} illustration"]
+            output[visual_format] = [f"{base} editorial photo", f"{base} clean product detail", f"{base} realistic environment"]
         elif visual_format == VisualFormat.OFFICIAL_EVIDENCE.value:
             output[visual_format] = [f"{base} official announcement", f"{base} newsroom documentation"]
         elif visual_format in {VisualFormat.BROWSER_DEMO.value, VisualFormat.APPLICATION_DEMO.value}:
@@ -110,11 +115,37 @@ def deterministic_intent(
         rationale.append("Commands should be demonstrated exactly in a readable terminal view.")
     elif _contains(lower, "click", "open settings", "menu", "toggle", "browser", "website", "application", "install"):
         purpose = VisualPurpose.DEMONSTRATE.value
-        preferred = [VisualFormat.APPLICATION_DEMO.value, VisualFormat.BROWSER_DEMO.value, *preferred]
-        required.extend(["relevant_interface", "visible_action"])
-        forbidden.extend(["unrelated_dashboard", "generic_laptop"])
+        if _contains(lower, "browser", "website", "webpage", "address bar", "url"):
+            preferred = [VisualFormat.BROWSER_DEMO.value, VisualFormat.APPLICATION_DEMO.value, *preferred]
+            required.extend(["browser_address_bar", "visible_action"])
+        else:
+            preferred = [VisualFormat.APPLICATION_DEMO.value, VisualFormat.BROWSER_DEMO.value, *preferred]
+            required.extend(["relevant_interface", "visible_action"])
+        forbidden.extend(["unrelated_dashboard", "generic_laptop", "phone_hotspot"])
         literalness = "demonstration"
         rationale.append("Interface instructions are clearest as a controlled UI demonstration.")
+
+    # Browser navigation and DNS/request flow. Keep these separate from generic
+    # application settings so a URL/DNS explanation receives a browser-specific
+    # visual instead of an unrelated settings screen.
+    if _contains(lower, "dns", "domain name", "type a url", "type the url", "address bar", "web address"):
+        subject = "browser_dns_lookup"
+        purpose = VisualPurpose.EXPLAIN_MECHANISM.value
+        preferred = [VisualFormat.BROWSER_DEMO.value, VisualFormat.ANIMATED_EXPLAINER.value, VisualFormat.STOCK_VIDEO.value, *preferred]
+        required.extend(["browser_address_bar", "domain_name", "dns_resolver", "ip_address"])
+        forbidden.extend(["phone_hotspot", "unrelated_settings", "generic_hacker", "abstract_ai_network"])
+        literalness = "mixed"
+        importance = max(importance, 0.9)
+        rationale.append("A URL/DNS explanation needs an address-bar and resolver flow, not a generic application screen.")
+    elif _contains(lower, "request the page", "server request", "web server", "returned webpage", "returns the webpage", "page loads", "load the website"):
+        subject = "browser_server_request"
+        purpose = VisualPurpose.EXPLAIN_MECHANISM.value
+        preferred = [VisualFormat.BROWSER_DEMO.value, VisualFormat.ANIMATED_EXPLAINER.value, VisualFormat.STOCK_VIDEO.value, *preferred]
+        required.extend(["browser_address_bar", "server_request", "server_response", "returned_page"])
+        forbidden.extend(["phone_hotspot", "unrelated_settings", "generic_hacker"])
+        literalness = "mixed"
+        importance = max(importance, 0.86)
+        rationale.append("A browser request should show the browser-server exchange and returned page.")
 
     # Network and security mechanisms.
     if _contains(lower, "public wi-fi", "public wifi", "shared network", "access point", "router"):
@@ -241,6 +272,7 @@ def deterministic_intent(
     literal_terms = (
         "person using", "walking", "cafe", "coffee shop", "airport", "gaming setup", "graphics card",
         "data center", "smartphone in hand", "laptop", "server rack", "office building",
+        "keyboard", "enter key", "finger", "press enter",
     )
     if _contains(lower, *literal_terms) and purpose not in {VisualPurpose.EXPLAIN_MECHANISM.value, VisualPurpose.SHOW_EVIDENCE.value}:
         preferred = [VisualFormat.ACCOUNT_ASSET.value, VisualFormat.STOCK_VIDEO.value, VisualFormat.STOCK_IMAGE.value, *preferred]
@@ -250,9 +282,30 @@ def deterministic_intent(
     # Hook/CTA presentation.
     if purpose == VisualPurpose.HOOK.value:
         importance = max(importance, 0.9)
-        preferred = [VisualFormat.KINETIC_TYPOGRAPHY.value, *preferred]
+        visual_hook_formats = {
+            VisualFormat.ACCOUNT_ASSET.value, VisualFormat.STOCK_VIDEO.value,
+            VisualFormat.BROWSER_DEMO.value, VisualFormat.APPLICATION_DEMO.value,
+            VisualFormat.TERMINAL_DEMO.value, VisualFormat.ANIMATED_EXPLAINER.value,
+        }
+        # A hook should usually open on action or a clear demo, not a static title
+        # card. Typography remains available as a fallback or brief emphasis.
+        if any(item in visual_hook_formats for item in preferred):
+            insert_at = min(2, len(preferred))
+            preferred = [*preferred[:insert_at], VisualFormat.KINETIC_TYPOGRAPHY.value, *preferred[insert_at:]]
+        else:
+            preferred = [VisualFormat.KINETIC_TYPOGRAPHY.value, *preferred]
     if purpose == VisualPurpose.CALL_TO_ACTION.value:
-        preferred = [VisualFormat.KINETIC_TYPOGRAPHY.value, VisualFormat.MINIMAL_SCREEN.value, *preferred]
+        # A CTA can use text, but a literal final action (keyboard, phone,
+        # browser, creator gesture) should remain visually alive.
+        active_formats = {
+            VisualFormat.ACCOUNT_ASSET.value, VisualFormat.STOCK_VIDEO.value,
+            VisualFormat.BROWSER_DEMO.value, VisualFormat.APPLICATION_DEMO.value,
+            VisualFormat.TERMINAL_DEMO.value, VisualFormat.ANIMATED_EXPLAINER.value,
+        }
+        if any(item in active_formats for item in preferred):
+            preferred = [*preferred, VisualFormat.KINETIC_TYPOGRAPHY.value, VisualFormat.MINIMAL_SCREEN.value]
+        else:
+            preferred = [VisualFormat.KINETIC_TYPOGRAPHY.value, VisualFormat.MINIMAL_SCREEN.value, *preferred]
 
     # Final fallback order: original communication first, stock only after it.
     if not preferred:
@@ -269,7 +322,7 @@ def deterministic_intent(
     forbidden = list(dict.fromkeys(forbidden))
     subject = subject or _subject_slug(text)
 
-    return ShotIntent(
+    intent = ShotIntent(
         shot_id=shot_id,
         narration=narration,
         purpose=purpose,
@@ -279,7 +332,7 @@ def deterministic_intent(
         preferred_formats=preferred,
         required_elements=required,
         forbidden_elements=forbidden,
-        search_queries=_queries(subject, narration, preferred, required),
+        search_queries={},
         caption_strategy=caption_strategy,
         evidence_required=evidence_required,
         humor_allowed=humor_allowed,
@@ -287,6 +340,8 @@ def deterministic_intent(
         rationale=" ".join(rationale) or "The deterministic planner selected formats according to the narration purpose.",
         metadata={"planner": "deterministic", "topic": topic},
     )
+    intent.search_queries = _queries(subject, narration, preferred, required, intent=intent)
+    return intent
 
 
 def _extract_json(text: str) -> dict[str, Any]:
