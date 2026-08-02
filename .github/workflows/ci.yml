@@ -13,6 +13,9 @@ jobs:
   source-snapshot:
     name: Source snapshot
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     steps:
       - uses: actions/checkout@v4
       - name: Upload exact source tree
