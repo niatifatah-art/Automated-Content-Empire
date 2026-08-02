@@ -1,0 +1,572 @@
+{
+  "schema_version": 5,
+  "version": "2.1.0",
+  "execution": {
+    "cloud_first": true,
+    "allow_degraded_local": false,
+    "automatic_local_fallback": false,
+    "minimum_quality_score": 85,
+    "maximum_retries": 2,
+    "maximum_cost_per_generation_usd": 1.0,
+    "cache_enabled": true
+  },
+  "credentials": {
+    "gemini": {
+      "maximum_credentials": 2,
+      "environment_variables": [
+        "GEMINI_API_KEY_PRIMARY",
+        "GEMINI_API_KEY_BACKUP",
+        "GEMINI_API_KEY"
+      ],
+      "retry_before_failover": 1,
+      "cooldown_seconds": 60,
+      "respect_retry_after": true
+    }
+  },
+  "providers": {
+    "gemini": {
+      "enabled": true,
+      "type": "gemini",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta",
+      "cost_tier": "free_or_paid",
+      "cloud": true
+    },
+    "openai": {
+      "enabled": false,
+      "type": "openai_compatible",
+      "base_url": "https://api.openai.com/v1",
+      "api_key_env": "OPENAI_API_KEY",
+      "cloud": true,
+      "cost_tier": "paid"
+    },
+    "openrouter": {
+      "enabled": false,
+      "type": "openai_compatible",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key_env": "OPENROUTER_API_KEY",
+      "cloud": true,
+      "cost_tier": "mixed"
+    },
+    "ollama": {
+      "enabled": true,
+      "type": "ollama",
+      "base_url": "http://127.0.0.1:11434",
+      "cloud": false,
+      "cost_tier": "local"
+    }
+  },
+  "routes": {
+    "research": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "critical": true
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "critical": true
+      },
+      {
+        "provider": "ollama",
+        "model": "auto",
+        "degraded": true
+      }
+    ],
+    "script": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "critical": true
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "critical": true
+      },
+      {
+        "provider": "ollama",
+        "model": "auto",
+        "degraded": true
+      }
+    ],
+    "review": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "critical": true
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "critical": true
+      },
+      {
+        "provider": "ollama",
+        "model": "auto",
+        "degraded": true
+      }
+    ],
+    "fact_check": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "critical": true
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "critical": true
+      },
+      {
+        "provider": "ollama",
+        "model": "auto",
+        "degraded": true
+      }
+    ],
+    "visual_planning": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "critical": true
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "critical": true
+      },
+      {
+        "provider": "ollama",
+        "model": "auto",
+        "degraded": true
+      }
+    ],
+    "quality": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "critical": true
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "critical": true
+      },
+      {
+        "provider": "ollama",
+        "model": "auto",
+        "degraded": true
+      }
+    ],
+    "classification": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash"
+      },
+      {
+        "provider": "ollama",
+        "model": "auto-small",
+        "degraded": true
+      }
+    ],
+    "json": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite"
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash"
+      },
+      {
+        "provider": "ollama",
+        "model": "auto-small",
+        "degraded": true
+      }
+    ],
+    "visual_judge": [
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.5-flash-lite",
+        "critical": true
+      },
+      {
+        "provider": "gemini",
+        "model": "gemini-3.6-flash",
+        "critical": true
+      },
+      {
+        "provider": "openai",
+        "model": "gpt-5-mini",
+        "critical": true
+      },
+      {
+        "provider": "ollama",
+        "model": "auto",
+        "degraded": true
+      }
+    ]
+  },
+  "research": {
+    "prefer_primary_sources": true,
+    "require_two_sources_for_breaking_claims": true,
+    "detect_contradictions": true,
+    "rss_fallback": true,
+    "maximum_sources": 12,
+    "trusted_domains": {
+      "openai": [
+        "openai.com"
+      ],
+      "microsoft": [
+        "microsoft.com",
+        "blogs.microsoft.com",
+        "learn.microsoft.com"
+      ],
+      "nvidia": [
+        "nvidia.com"
+      ],
+      "amd": [
+        "amd.com"
+      ],
+      "google": [
+        "google.com",
+        "blog.google",
+        "developers.google.com"
+      ],
+      "apple": [
+        "apple.com"
+      ],
+      "linux": [
+        "kernel.org",
+        "linuxfoundation.org"
+      ],
+      "freecodecamp": [
+        "freecodecamp.org"
+      ],
+      "github": [
+        "github.com",
+        "github.blog"
+      ],
+      "linus_tech_tips": [
+        "linustechtips.com",
+        "youtube.com"
+      ]
+    }
+  },
+  "social": {
+    "allow_any_relevant_post": true,
+    "show_identity_for_public_accounts": true,
+    "anonymize_ordinary_users": true,
+    "allow_negative_reactions": true,
+    "opinion_is_not_evidence": true
+  },
+  "resources": {
+    "download_limit_per_generation": 12,
+    "cache_hours": 24,
+    "safe_search": true,
+    "providers": {
+      "library": {
+        "enabled": true,
+        "priority": 0
+      },
+      "pexels": {
+        "enabled": true,
+        "priority": 1,
+        "api_key_env": "PEXELS_API_KEY"
+      },
+      "pixabay": {
+        "enabled": true,
+        "priority": 2,
+        "api_key_env": "PIXABAY_API_KEY"
+      },
+      "openverse": {
+        "enabled": true,
+        "priority": 3,
+        "api_key_env": "OPENVERSE_ACCESS_TOKEN"
+      },
+      "wikimedia": {
+        "enabled": true,
+        "priority": 4
+      },
+      "giphy": {
+        "enabled": false,
+        "priority": 5,
+        "api_key_env": "GIPHY_API_KEY",
+        "approval_required": true
+      },
+      "tenor": {
+        "enabled": false,
+        "priority": 6,
+        "api_key_env": "TENOR_API_KEY",
+        "approval_required": true
+      }
+    },
+    "allowed_licenses": [
+      "user_owned",
+      "public_domain",
+      "cc0",
+      "cc_by",
+      "pexels",
+      "pixabay"
+    ],
+    "never_assume_article_images_reusable": true
+  },
+  "evidence": {
+    "article_cards": "automatic",
+    "webpage_screenshots": "official_only",
+    "official_page_capture_in_autopilot": true,
+    "social_post_cards": "adaptive",
+    "store_source_hash": true,
+    "generated_visual_labels": true
+  },
+  "memes": {
+    "enabled": true,
+    "allow_existing_memes": true,
+    "allow_generated_memes": true,
+    "verify_reuse_rights": true,
+    "internet_memes_require_approval": true,
+    "humor_level": "moderate",
+    "allow_light_cringe": true,
+    "avoid_forced_jokes": true,
+    "avoid_serious_harm_topics": true
+  },
+  "editing": {
+    "default_style": "adaptive",
+    "default_mood": "dynamic_technical",
+    "average_shot_seconds": 2.6,
+    "minimum_shot_seconds": 1.4,
+    "maximum_shot_seconds": 4.2,
+    "transitions": true,
+    "transition_seconds": 0.16,
+    "vertical_background": "blur",
+    "preserve_subject": true,
+    "styles": {
+      "technical_dynamic": {
+        "pace": "fast",
+        "humor": 0.35,
+        "transition": "quick_fade",
+        "caption_preset": "adaptive_bold"
+      },
+      "clean_documentary": {
+        "pace": "medium",
+        "humor": 0.05,
+        "transition": "fade",
+        "caption_preset": "adaptive_clean"
+      },
+      "gaming_hype": {
+        "pace": "very_fast",
+        "humor": 0.6,
+        "transition": "punch",
+        "caption_preset": "adaptive_bold"
+      },
+      "challenge": {
+        "pace": "fast",
+        "humor": 0.5,
+        "transition": "quick_fade",
+        "caption_preset": "challenge"
+      },
+      "serious_technical": {
+        "pace": "controlled",
+        "humor": 0.0,
+        "transition": "fade",
+        "caption_preset": "minimal"
+      },
+      "playful_tech": {
+        "pace": "fast",
+        "humor": 0.55,
+        "transition": "quick_fade",
+        "caption_preset": "adaptive_bold"
+      }
+    },
+    "avoid_black_dip_transitions": true,
+    "motion_enabled": true,
+    "shot_variation_enabled": true,
+    "maximum_sentence_shot_seconds": 7.2
+  },
+  "captions": {
+    "adaptive": true,
+    "accessibility_track": true,
+    "visible_default": "director",
+    "words_per_chunk_min": 3,
+    "words_per_chunk_max": 6,
+    "maximum_lines": 2,
+    "maximum_characters_per_line": 24,
+    "safe_width_ratio": 0.82,
+    "safe_top_ratio": 0.1,
+    "safe_bottom_ratio": 0.13,
+    "font_name": "DejaVu Sans",
+    "font_size_vertical": 68,
+    "font_size_landscape": 48,
+    "minimum_font_size": 34,
+    "highlight_current_word": false,
+    "avoid_faces": true
+  },
+  "audio": {
+    "normalize_narration": true,
+    "target_lufs": -16,
+    "true_peak_db": -1,
+    "background_music": "adaptive",
+    "music_target_lufs": -29,
+    "duck_under_voice": true,
+    "sound_effects": "minimal"
+  },
+  "render": {
+    "burn_visible_captions": true,
+    "resolution_vertical": "1080x1920",
+    "resolution_landscape": "1920x1080",
+    "fps": 30,
+    "preset": "veryfast",
+    "reject_empty_renders": true,
+    "sample_frames": 8
+  },
+  "publishing": {
+    "enabled": false,
+    "require_final_approval": true,
+    "allow_scheduling_after_approval": true,
+    "automatic_publish": false
+  },
+  "generated_images": {
+    "enabled": true,
+    "automatic_for_missing_concepts": true,
+    "provider_order": [
+      "gemini_image",
+      "openai_image"
+    ],
+    "gemini_model": "gemini-3.1-flash-image",
+    "openai_model": "gpt-image-1-mini",
+    "aspect_ratio_vertical": "9:16",
+    "aspect_ratio_landscape": "16:9",
+    "label_generated_evidence": true,
+    "never_generate_fake_evidence": true
+  },
+  "visual_intelligence": {
+    "enabled": true,
+    "cloud_intent_planner": true,
+    "cloud_vision_judge": true,
+    "vision_model": "gemini-3.5-flash",
+    "judge_frame_count": 3,
+    "cloud_judge_candidate_limit": 3,
+    "maximum_candidates_per_shot": 12,
+    "stock_candidates_per_query": 4,
+    "animate_explainers": true,
+    "preserve_candidate_artifacts": true,
+    "acceptance": {
+      "minimum_relevance": 78,
+      "minimum_clarity": 72,
+      "minimum_vertical_fit": 70,
+      "minimum_truthfulness": 95,
+      "maximum_duplicate_risk": 25,
+      "minimum_average_relevance": 78,
+      "maximum_generic_filler_ratio": 0.1
+    },
+    "format_priority": [
+      "official_evidence",
+      "browser_demo",
+      "terminal_demo",
+      "application_demo",
+      "animated_explainer",
+      "generated_concept_image",
+      "article_card",
+      "social_post_card",
+      "data_chart",
+      "comparison_graphic",
+      "timeline",
+      "meme",
+      "account_asset",
+      "stock_video",
+      "stock_image",
+      "kinetic_typography",
+      "minimal_screen"
+    ],
+    "ace_candidates_per_shot": 2,
+    "stock_queries_per_shot": 4,
+    "broll_frame_samples": 5,
+    "meme_candidate_limit": 1,
+    "creative_engine_version": 1,
+    "cloud_intent_budget_by_quality": {
+      "quick": 0,
+      "balanced": 1,
+      "best": 2
+    },
+    "cloud_judge_shot_budget_by_quality": {
+      "quick": 0,
+      "balanced": 0,
+      "best": 2
+    },
+    "cloud_judge_candidates_by_quality": {
+      "quick": 0,
+      "balanced": 1,
+      "best": 2
+    },
+    "automatic_cloud_images": false
+  }
+}

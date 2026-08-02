@@ -1,0 +1,108 @@
+name: ACE CI
+
+on:
+  push:
+    branches: [main, "feature/**", "release/**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  source-snapshot:
+    name: Source snapshot
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload exact source tree
+        uses: actions/upload-artifact@v4
+        with:
+          name: ace-source-${{ github.sha }}
+          path: |
+            .
+            !.git/**
+          include-hidden-files: true
+          retention-days: 3
+
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core libsndfile1
+      - name: Install ACE and tests
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e ".[test]"
+      - name: Compile
+        run: python -m compileall -q src/ace
+      - name: Unit and regression tests
+        run: pytest -q
+      - name: Visual benchmark
+        run: ace visuals benchmark
+      - name: Offline pipeline self-test
+        run: ace test quick
+
+  security-and-package:
+    name: Security and package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip setuptools wheel build
+          python -m pip install -e ".[test]"
+      - name: Reject likely embedded secrets
+        run: |
+          python - <<'PY'
+          import pathlib, re, sys
+          patterns = {
+              "Google API key": re.compile(r"AIza[0-9A-Za-z_-]{30,}"),
+              "OpenAI-style key": re.compile(r"\bsk-[0-9A-Za-z_-]{20,}"),
+              "Private key": re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
+          }
+          ignored = {".git", ".venv", "dist", "build"}
+          failures = []
+          for path in pathlib.Path('.').rglob('*'):
+              if not path.is_file() or any(part in ignored for part in path.parts):
+                  continue
+              if path.suffix.lower() in {'.png','.jpg','.jpeg','.gif','.mp4','.wav','.whl','.zip'}:
+                  continue
+              text = path.read_text(encoding='utf-8', errors='ignore')
+              for name, pattern in patterns.items():
+                  if pattern.search(text):
+                      failures.append(f"{name}: {path}")
+          if failures:
+              print('\n'.join(failures))
+              sys.exit(1)
+          print('No likely embedded secrets found.')
+          PY
+      - name: Build wheel and source distribution
+        run: python -m build
+      - name: Verify wheel install
+        run: |
+          python -m venv /tmp/ace-wheel-test
+          /tmp/ace-wheel-test/bin/pip install dist/*.whl
+          /tmp/ace-wheel-test/bin/ace --version
+          /tmp/ace-wheel-test/bin/ace visuals benchmark
