@@ -569,3 +569,4 @@ Each generation contains structured research, evidence, claims, visuals, caption
 - Publishing remains a human-approved future integration.
 
 See `docs/architecture.md`, `docs/commands.md`, `docs/security.md`, and `docs/migration.md` for implementation details.
+.
