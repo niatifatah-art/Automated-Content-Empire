@@ -60,14 +60,37 @@ def _format_prompt(platform: str, content_type: str) -> str:
     return f"Write a finished {platform} {content_type} deliverable."
 
 
+def _compact_context(value: str | None, limit: int = 900) -> str:
+    if not value:
+        return ""
+    compact = re.sub(r"\s+", " ", value).strip()
+    if len(compact) <= limit:
+        return compact
+    return compact[: limit - 1].rstrip() + "…"
+
+
 def _source_context(folder: Path) -> str:
     sources = load_sources(folder)
     if not sources:
         return "No external sources are currently available. Avoid precise claims that require verification."
-    lines = []
-    for source in sources[:10]:
-        lines.append(f"- [{source.credibility}] {source.title} — {source.publisher or source.domain} — {source.url}")
-    return "Available research references:\n" + "\n".join(lines)
+    blocks: list[str] = []
+    for index, source in enumerate(sources[:8], start=1):
+        meta = [source.credibility]
+        if source.official:
+            meta.append("official")
+        if source.published_at:
+            meta.append(str(source.published_at))
+        publisher = source.publisher or source.domain or "unknown publisher"
+        blocks.append(f"[S{index}] {' / '.join(meta)} — {source.title} — {publisher} — {source.url}")
+        evidence = _compact_context(source.text_excerpt or source.description)
+        if evidence:
+            blocks.append(f"Evidence excerpt: {evidence}")
+        else:
+            blocks.append("Evidence excerpt: unavailable; treat the headline as metadata, not proof of details.")
+    return (
+        "Available research references. Use the evidence excerpts for factual details; a headline or URL alone is not sufficient support:\n"
+        + "\n".join(blocks)
+    )
 
 
 def _candidate_prompt(
@@ -94,12 +117,15 @@ Candidate angle: {angle}
 Extra instructions: {instructions or 'None'}
 
 Safety and quality rules:
-- Use only conservative, well-established claims supported by the supplied sources.
+- Base factual details on the supplied evidence excerpts when they are available.
+- A source headline or URL by itself is not evidence for extra details; do not infer specifics that are absent from the excerpt.
+- When evidence is incomplete, prefer a useful but conservative explanation over invented precision.
 - Never invent quotations, percentages, dates, studies, benchmark results, or deal terms.
 - Do not use quotation marks unless the quotation appears in a source.
 - Clearly frame rumors, reactions, jokes, and opinions as such.
 - Match the seriousness of the topic; do not joke about victims or harm.
-- Sound like a smart 20-year-old technology creator: human, current, lightly funny when appropriate, never corporate or childish.
+- Match the creator identity and audience described above. Sound human and current, never corporate or childish.
+- Do not copy source wording mechanically and do not output source labels or citations inside the spoken narration.
 
 {_source_context(folder)}
 
