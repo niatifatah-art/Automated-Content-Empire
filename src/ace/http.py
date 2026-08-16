@@ -16,6 +16,7 @@ class HTTPResponse:
     status: int
     headers: dict[str, str]
     body: bytes
+    url: str | None = None
 
     def json(self) -> Any:
         return json.loads(self.body.decode("utf-8"))
@@ -50,15 +51,24 @@ def request(
         cache_key = cache.key("http", url)
         cached = cache.get(cache_key)
         if isinstance(cached, dict) and "body" in cached:
-            return HTTPResponse(int(cached["status"]), dict(cached.get("headers", {})), bytes.fromhex(cached["body"]))
+            return HTTPResponse(
+                int(cached["status"]),
+                dict(cached.get("headers", {})),
+                bytes.fromhex(cached["body"]),
+                str(cached.get("url") or url),
+            )
     last_error: Exception | None = None
     for attempt in range(retries + 1):
         req = urllib.request.Request(url, data=payload, headers=normalized_headers, method=method.upper())
         try:
             with urllib.request.urlopen(req, timeout=timeout) as response:
-                result = HTTPResponse(response.status, dict(response.headers.items()), response.read())
+                result = HTTPResponse(response.status, dict(response.headers.items()), response.read(), response.geturl())
                 if cache_key and cache:
-                    cache.set(cache_key, {"status": result.status, "headers": result.headers, "body": result.body.hex()}, cache_ttl)
+                    cache.set(
+                        cache_key,
+                        {"status": result.status, "headers": result.headers, "body": result.body.hex(), "url": result.url},
+                        cache_ttl,
+                    )
                 return result
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
