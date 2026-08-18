@@ -1,25 +1,23 @@
 schema_version: 2
-name: Fatah
-slug: fatah
+name: Demo Creator
+slug: demo-creator
 description: >
-  Technology, gaming, cybersecurity and programming explained in a fun,
-  accessible and credible way.
+  A generic example account used to demonstrate ACE configuration without
+  exposing a real creator identity, handle, voice, or publishing profile.
 identity:
   personality:
     - human
-    - entertaining
     - clear
     - credible
-    - uses intelligent tech jokes
-  age_energy: young_adult
+  age_energy: general
   humor:
     default_level: moderate
-    allow_light_cringe: true
+    allow_light_cringe: false
     allow_memes: true
     avoid_forced_jokes: true
     avoid_mocking_victims: true
 audience:
-  description: People interested in technology and tech news
+  description: General technology audience
   knowledge_level: general
   age_range: broad
 languages:
@@ -29,17 +27,19 @@ platforms:
   youtube: {enabled: true}
   tiktok: {enabled: true}
   instagram: {enabled: true}
-  facebook: {enabled: true}
-  x: {enabled: true}
-  linkedin: {enabled: true}
 content:
-  pillars: [technology news, gaming, cybersecurity, programming]
+  pillars: [technology, education]
   avoid:
     - fake urgency
     - unsupported statistics
-    - overly technical explanations without context
 voice:
-  configured: true
+  configured: false
+  # Future Speech Core binding. A stable profile ID identifies the account voice;
+  # engine/model/recipe details stay inside Speech Core instead of ACE account data.
+  profile_id: null
+  policy: consistency_first
+  default_style: creator
+  # Legacy compatibility fields remain until ACE voice.py migrates to Speech Core.
   provider: kokoro
   voice_id: af_sarah
   pace: natural
@@ -47,9 +47,9 @@ voice:
 editing:
   style: adaptive
   default_mood: technical_dynamic
-  audience_mentality: young_adult
+  audience_mentality: general
   captions: {mode: director, maximum_lines: 2}
-  humor: {adaptive: true, controlled_cringe: true}
+  humor: {adaptive: true, controlled_cringe: false}
 automation:
   candidates: 5
   minimum_quality_score: 85
