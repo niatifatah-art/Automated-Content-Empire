@@ -32,7 +32,20 @@ DEFAULT_ACCOUNT: dict[str, Any] = {
     "languages": {"primary": "en", "enabled": ["en"]},
     "platforms": {"youtube": {"enabled": True}, "tiktok": {"enabled": True}, "instagram": {"enabled": True}},
     "content": {"pillars": ["technology"], "avoid": ["fake urgency", "unsupported statistics"]},
-    "voice": {"configured": False, "provider": "kokoro", "voice_id": "af_sarah", "pace": "natural", "energy": "conversational"},
+    "voice": {
+        "configured": False,
+        # Long-term identity fields. Speech Core owns the engine/model/recipe behind
+        # this profile, so automated accounts can keep a stable voice across upgrades.
+        "profile_id": None,
+        "policy": "consistency_first",
+        "default_style": "creator",
+        # Legacy compatibility fields remain until ace.voice moves behind the shared
+        # Speech Core client. Existing accounts continue to work during migration.
+        "provider": "kokoro",
+        "voice_id": "af_sarah",
+        "pace": "natural",
+        "energy": "conversational",
+    },
     "editing": {
         "style": "adaptive",
         "default_mood": "technical_dynamic",
@@ -62,9 +75,10 @@ def _load_raw(name: str | None = None, workspace: str | Path | None = None) -> d
 def migrate_account(account: dict[str, Any]) -> dict[str, Any]:
     """Fill new account fields without overwriting user choices.
 
-    ACE 1.x accounts did not contain the v2 editing/personality blocks.  Loading
-    through this function makes old accounts immediately usable, while
-    ``migrate_all`` persists the upgrade with a history snapshot.
+    ACE 1.x accounts did not contain the v2 editing/personality blocks. Loading
+    through this function makes old accounts immediately usable. New Speech Core
+    voice-binding fields are additive: legacy provider/voice_id values are preserved
+    until a profile is explicitly created and bound.
     """
     migrated = deep_merge(deepcopy(DEFAULT_ACCOUNT), account)
     migrated["schema_version"] = DEFAULT_ACCOUNT["schema_version"]
