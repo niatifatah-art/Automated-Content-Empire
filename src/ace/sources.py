@@ -106,27 +106,35 @@ def _credibility(domain: str, official: bool, source_type: str) -> tuple[str, fl
     return "secondary", 0.55
 
 
-def inspect_url(url: str, workspace: str | Path | None = None, *, source_type: str = "article") -> SourceRecord:
+def inspect_url(
+    url: str,
+    workspace: str | Path | None = None,
+    *,
+    source_type: str = "article",
+    timeout: int = 30,
+    retries: int = 1,
+) -> SourceRecord:
     config = load_config(workspace)
     cache = Cache(workspace)
-    response = request("GET", url, timeout=30, retries=1, cache=cache, cache_ttl=6 * 3600)
+    response = request("GET", url, timeout=timeout, retries=retries, cache=cache, cache_ttl=6 * 3600)
+    resolved_url = response.url or url
     content_type = response.headers.get("Content-Type", "")
-    if "html" not in content_type and not url.lower().endswith((".html", "/")):
+    if "html" not in content_type and not resolved_url.lower().endswith((".html", "/")):
         raise ValueError(f"URL is not an HTML page: {content_type}")
     raw = response.body.decode("utf-8", errors="replace")
     parser = _MetaParser()
     parser.feed(raw)
-    title = parser.meta.get("og:title") or parser.meta.get("twitter:title") or " ".join(parser.title_parts).strip() or url
+    title = parser.meta.get("og:title") or parser.meta.get("twitter:title") or " ".join(parser.title_parts).strip() or resolved_url
     description = parser.meta.get("og:description") or parser.meta.get("description") or parser.meta.get("twitter:description")
     publisher = parser.meta.get("og:site_name") or parser.meta.get("application-name")
     author = parser.meta.get("author") or parser.meta.get("article:author")
     published = parser.meta.get("article:published_time") or parser.meta.get("date") or parser.meta.get("datepublished")
-    domain = _domain(url)
+    domain = _domain(resolved_url)
     official = _is_official(domain, config)
     credibility, score = _credibility(domain, official, source_type)
     text = " ".join(parser.text_parts)
     excerpt = text[:1200] if text else description
-    source_id = sha256_bytes(url.encode("utf-8"))[:16]
+    source_id = sha256_bytes(resolved_url.encode("utf-8"))[:16]
     usage = {
         "research": True,
         "headline_card": True,
@@ -135,7 +143,7 @@ def inspect_url(url: str, workspace: str | Path | None = None, *, source_type: s
     }
     return SourceRecord(
         id=source_id,
-        url=url,
+        url=resolved_url,
         title=html.unescape(title).strip(),
         publisher=html.unescape(publisher).strip() if publisher else domain,
         published_at=published,

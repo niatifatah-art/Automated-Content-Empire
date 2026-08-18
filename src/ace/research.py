@@ -8,7 +8,7 @@ from typing import Any
 
 from ace.config import load as load_config
 from ace.providers import ProviderFailure, ProviderRouter
-from ace.sources import SourceRecord, discover_news_rss, load_sources, save_sources
+from ace.sources import SourceRecord, discover_news_rss, inspect_url, load_sources, save_sources
 from ace.storage import metadata, resolve_generation
 from ace.utils import read_json, sha256_bytes, write_json
 
@@ -36,6 +36,47 @@ class ResearchReport:
     status: str
 
 
+def hydrate_sources(
+    sources: list[SourceRecord],
+    workspace: str | Path | None = None,
+    *,
+    limit: int = 4,
+) -> list[SourceRecord]:
+    """Best-effort page reading for metadata-only discoveries.
+
+    Search/RSS results are useful for discovery, but their headlines are not enough
+    evidence for script generation. Read a small number of top pages and retain the
+    original metadata whenever the page cannot be resolved or parsed safely.
+    """
+    hydrated: list[SourceRecord] = []
+    attempts = 0
+    for source in sources:
+        if source.text_excerpt or source.description or attempts >= max(0, limit):
+            hydrated.append(source)
+            continue
+        attempts += 1
+        try:
+            enriched = inspect_url(source.url, workspace, source_type=source.source_type, timeout=10, retries=0)
+        except Exception:
+            hydrated.append(source)
+            continue
+
+        # Google News and similar aggregators are discovery metadata, not article evidence.
+        if not enriched.text_excerpt or enriched.domain in {"news.google.com", "google.com"}:
+            hydrated.append(source)
+            continue
+
+        if source.published_at and not enriched.published_at:
+            enriched.published_at = source.published_at
+        if source.publisher and (not enriched.publisher or enriched.publisher == enriched.domain):
+            enriched.publisher = source.publisher
+        if source.title and (not enriched.title or enriched.title == enriched.url):
+            enriched.title = source.title
+        enriched.notes = [*source.notes, *enriched.notes, "Page content hydrated from discovery result."]
+        hydrated.append(enriched)
+    return hydrated
+
+
 def collect(generation: str | Path, *, query: str | None = None, workspace: str | Path | None = None) -> list[SourceRecord]:
     folder = resolve_generation(generation, workspace)
     query = query or str(metadata(folder).get("topic") or folder.name)
@@ -50,8 +91,11 @@ def collect(generation: str | Path, *, query: str | None = None, workspace: str 
     combined = [*current, *discovered]
     combined.sort(key=lambda item: (not item.official, -item.credibility_score, item.title))
     limit = int(config.get("research", {}).get("maximum_sources", 12))
-    save_sources(folder, combined[:limit], workspace)
-    return combined[:limit]
+    selected = combined[:limit]
+    hydration_limit = int(config.get("research", {}).get("source_hydration_limit", 4))
+    selected = hydrate_sources(selected, workspace, limit=hydration_limit)
+    save_sources(folder, selected, workspace)
+    return selected
 
 
 def _fallback_claims(script: str) -> list[ClaimRecord]:
